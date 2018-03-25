@@ -1,0 +1,9 @@
+[package]
+name = "aurora"
+version = "0.1.0"
+authors = ["Dale <putnam.dale17@gmail.com>"]
+publish = false
+
+[dependencies]
+nalgebra = "0.14.1"
+rlua = "0.13.0"
