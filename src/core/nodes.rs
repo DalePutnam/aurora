@@ -1,68 +1,29 @@
-//use std::cell::RefCell;
 use std::sync::{RwLock, Arc};
 use na::{Matrix4, Vector3, Unit};
-//use rlua::{UserData, UserDataMethods, Value};
-
-static PI: f32 = 3.14159265;
-
-fn degrees_to_radians(angle: f32) -> f32 {
-    angle * (PI / 180.0)
-}
-
-pub trait Node: Send + Sync {
-    fn get_name(&self) -> &String;
-    fn rotate(&self, axis: char, angle: f32);
-    fn scale(&self, amount: &Vector3<f32>);
-    fn translate(&self, amount: &Vector3<f32>);
-    fn add_child(&self, node: &Arc<Node>);
-}
+use core::math::degrees_to_radians;
 
 pub struct SceneNode {
     name: String,
-    // transform_matrix: RefCell<Matrix4<f32>>,
-    // inverse_matrix: RefCell<Matrix4<f32>>,
-    transform_matrix: RwLock<Matrix4<f32>>,
-    inverse_matrix: RwLock<Matrix4<f32>>,
-    children: RwLock<Vec<Arc<Node>>>,
+    transform_matrix: Matrix4<f32>,
+    inverse_matrix: Matrix4<f32>,
+    children: Vec<Arc<RwLock<SceneNode>>>,
 }
 
 impl SceneNode {
     pub fn new(name: &str) -> SceneNode {
         SceneNode { 
             name: name.to_string(),
-            transform_matrix: RwLock::new(Matrix4::<f32>::identity()),
-            inverse_matrix: RwLock::new(Matrix4::<f32>::identity()),
-            children: RwLock::new(Vec::new())
+            transform_matrix: Matrix4::<f32>::identity(),
+            inverse_matrix: Matrix4::<f32>::identity(),
+            children: Vec::new(),
         }
     }
 
-    fn set_transform(&self, transform: Matrix4<f32>) {
-        // let mut transform_matrix = self.transform_matrix.borrow_mut();
-        // let mut inverse_matrix = self.inverse_matrix.borrow_mut();
-
-        // *transform_matrix = transform;
-        // *inverse_matrix = transform.try_inverse().unwrap();
-
-        let mut transform_matrix = match self.transform_matrix.write() {
-            Ok(matrix) => matrix,
-            Err(_) => panic!("Transform Matrix is poisoned!"),
-        };
-        let mut inverse_matrix = match self.inverse_matrix.write() {
-            Ok(matrix) => matrix,
-            Err(_) => panic!("Inverse Tranform Matrix is poisoned!"),
-        };
-
-        *transform_matrix = transform;
-        *inverse_matrix = transform.try_inverse().unwrap();
-    }
-}
-
-impl Node for SceneNode {
-    fn get_name(&self) -> &String {
+    pub fn get_name(&self) -> &String {
         &self.name
     }
 
-    fn rotate(&self, axis: char, angle: f32) {
+    pub fn rotate(&mut self, axis: char, angle: f32) {
         println!("Rotating {} degrees on the {} axis", angle, axis);
 
         let rotation_axis = match axis {
@@ -73,72 +34,47 @@ impl Node for SceneNode {
         };
 
         let rotation_matrix = Matrix4::from_axis_angle(&Unit::new_normalize(rotation_axis), degrees_to_radians(angle));
-
-        let new_matrix = {
-            let old_matrix = match self.transform_matrix.read() {
-                Ok(matrix) => matrix,
-                Err(_) => panic!("Transform Matrix is poisoned!"),
-            };
-            rotation_matrix * *old_matrix
-        };
+        let new_matrix = rotation_matrix * self.transform_matrix;
 
         println!("New Matrix is {}", new_matrix);
 
-        self.set_transform(new_matrix);
+        set_transform(&new_matrix, &mut self.transform_matrix, &mut self.inverse_matrix);
     }
 
-    fn scale(&self, amount: &Vector3<f32>) {
+    pub fn scale(&mut self, amount: &Vector3<f32>) {
         println!("Scaling by {}", amount);
 
         let scale_matrix = Matrix4::new_nonuniform_scaling(amount);
-        // let new_matrix = {
-        //     let old_matrix = self.transform_matrix.borrow();
-        //     scale_matrix * *old_matrix
-        // };
-        let new_matrix = {
-            let old_matrix = match self.transform_matrix.read() {
-                Ok(matrix) => matrix,
-                Err(_) => panic!("Transform Matrix is poisoned!"),
-            };
-            scale_matrix * *old_matrix
-        };
+        let new_matrix = scale_matrix * self.transform_matrix;
 
         println!("New Matrix is {}", new_matrix);
 
-        self.set_transform(new_matrix);
+        set_transform(&new_matrix, &mut self.transform_matrix, &mut self.inverse_matrix);
     }
 
-    fn translate(&self, amount: &Vector3<f32>) {
+    pub fn translate(&mut self, amount: &Vector3<f32>) {
         println!("Translating by {}", amount);
 
         let translate_matrix = Matrix4::new_translation(amount);
-
-        // let new_matrix = {
-        //     let old_matrix = self.transform_matrix.borrow();
-        //     translate_matrix * *old_matrix
-        // };
-
-        let new_matrix = {
-            let old_matrix = match self.transform_matrix.read() {
-                Ok(matrix) => matrix,
-                Err(_) => panic!("Transform Matrix is poisoned!"),
-            };
-            translate_matrix * *old_matrix
-        };
+        let new_matrix = translate_matrix * self.transform_matrix;
 
         println!("New Matrix is {}", new_matrix);
 
-        self.set_transform(new_matrix);
+        set_transform(&new_matrix, &mut self.transform_matrix, &mut self.inverse_matrix);
     }
 
-    fn add_child(&self, node: &Arc<Node>) {
-        println!("Adding child {} to {}!", node.get_name(), self.name);
-
-        let mut children = match self.children.write() {
-            Ok(vec) => vec,
+    pub fn add_child(&mut self, node: &Arc<RwLock<SceneNode>>) {
+        match node.read() {
+            Ok(scene_node) => println!("Adding child {} to {}!", scene_node.get_name(), self.name),
             Err(_) => panic!("Children vector is poisoned!"),
         };
 
-        children.push(Arc::clone(node));
+        self.children.push(Arc::clone(node));
     }
 }
+
+fn set_transform(transform: &Matrix4<f32>, matrix: &mut Matrix4<f32>, inverse_matrix: &mut Matrix4<f32>) {
+    *matrix = *transform;
+    *inverse_matrix = matrix.try_inverse().unwrap();
+}
+

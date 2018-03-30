@@ -1,21 +1,21 @@
-use std::sync::Arc;
-use core::nodes::{Node, SceneNode};
-use na::{Vector3};
+use std::sync::{Arc, RwLock};
+use core::nodes::SceneNode;
+use na::Vector3;
 use rlua::{UserData, UserDataMethods, Value};
 
 pub struct LuaSceneNode {
-    node: Arc<Node>
+    node: Arc<RwLock<SceneNode>>,
 }
 
 impl LuaSceneNode {
     pub fn new(node_name: &String) -> Self {
-        LuaSceneNode { node: Arc::new(SceneNode::new(node_name)) }
+        LuaSceneNode { node: Arc::new(RwLock::new(SceneNode::new(node_name))) }
     }
 }
 
 impl UserData for LuaSceneNode {
     fn add_methods(methods: &mut UserDataMethods<Self>) {
-        methods.add_method_mut("rotate", |_, node, (lua_axis, lua_angle)| {
+        methods.add_method_mut("rotate", |_, lua_node, (lua_axis, lua_angle)| {
             let axis = match lua_axis {
                 Value::String(string) => {
                     match string.to_str() {
@@ -32,14 +32,15 @@ impl UserData for LuaSceneNode {
                 _ => panic!("Failed to rotate"),
             };
 
-            let internal_node = &(node.node);
-
-            (*internal_node).rotate(axis, angle);
+            match lua_node.node.write() {
+                Ok(mut scene_node) => scene_node.rotate(axis, angle),
+                Err(_) => panic!("SceneNode lock is poisoned!"),
+            };
 
             Ok(())
         });
 
-        methods.add_method("scale", |_, node, (lua_x, lua_y, lua_z)| {
+        methods.add_method("scale", |_, lua_node, (lua_x, lua_y, lua_z)| {
             let x = match lua_x {
                 Value::Number(number) => number as f32,
                 Value::Integer(integer) => integer as f32,
@@ -59,14 +60,16 @@ impl UserData for LuaSceneNode {
             };
 
             let amount = Vector3::new(x, y, z);
-            let internal_node = &(node.node);
 
-            (*internal_node).scale(&amount);
+            match lua_node.node.write() {
+                Ok(mut scene_node) => scene_node.scale(&amount),
+                Err(_) => panic!("SceneNode lock is poisoned!"),
+            };
 
             Ok(())
         });
 
-        methods.add_method("tranlate", |_, node, (lua_x, lua_y, lua_z)| {
+        methods.add_method("tranlate", |_, lua_node, (lua_x, lua_y, lua_z)| {
             let x = match lua_x {
                 Value::Number(number) => number as f32,
                 Value::Integer(integer) => integer as f32,
@@ -86,22 +89,23 @@ impl UserData for LuaSceneNode {
             };
 
             let amount = Vector3::new(x, y, z);
-            let internal_node = &(node.node);
-
-            (*internal_node).translate(&amount);
+            match lua_node.node.write() {
+                Ok(mut scene_node) => scene_node.translate(&amount),
+                Err(_) => panic!("SceneNode lock is poisoned!"),
+            };
 
             Ok(())
         });
 
-        methods.add_method("add_child", |_, node, lua_node| {
-            match lua_node {
+        methods.add_method("add_child", |_, lua_node, child_lua_node| {
+            match child_lua_node {
                 Value::UserData(user_data) => {
                     match user_data.borrow::<LuaSceneNode>() {
-                        Ok(child) => {
-                            let internal_node = &(node.node);
-                            let internal_child = &(child.node);
-
-                            (*internal_node).add_child(internal_child);
+                        Ok(child_node) => {
+                            match lua_node.node.write() {
+                                Ok(mut scene_node) => scene_node.add_child(&child_node.node),
+                                Err(_) => panic!("SceneNode lock is poisoned!"),
+                            };
 
                             Ok(())
                         },
