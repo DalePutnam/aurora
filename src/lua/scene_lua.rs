@@ -69,7 +69,7 @@ impl UserData for LuaSceneNode {
             Ok(())
         });
 
-        methods.add_method("tranlate", |_, lua_node, (lua_x, lua_y, lua_z)| {
+        methods.add_method("translate", |_, lua_node, (lua_x, lua_y, lua_z)| {
             let x = match lua_x {
                 Value::Number(number) => number as f32,
                 Value::Integer(integer) => integer as f32,

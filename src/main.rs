@@ -38,7 +38,7 @@ fn test_rlua() -> Result<()> {
 
             node:rotate('X', 1.0)
             node:scale(1.0, 2.0, 1.0)
-            node:tranlate(1.0, 1.0, 1.0)
+            node:translate(1.0, 1.0, 1.0)
         "#,
         Some("Test"),
     )?;
