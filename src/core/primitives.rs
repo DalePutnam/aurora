@@ -53,11 +53,16 @@ impl Primitive for NonhierSphere {
                         }
                     };
 
-                    let n = (origin + (*intersect * po)) - self.position;
+                    let mut n = (origin + (*intersect * po)) - self.position;
 
                     // TODO: Calculate UVs
                     *u = 0.0;
                     *v = 0.0;
+
+                    // Invert normal if inside sphere
+                    if n.dot(&(origin - point)) < 0.0 {
+                        n = -n;
+                    }
 
                     *normal = transform.transpose() * n;
 
@@ -89,10 +94,11 @@ impl Primitive for NonhierBox {
         let position = &self.position;
         let size = self.size;
 
-        let hit = false;
-        let t = f32::MAX;
-        let nu = 0.0;
-        let nv = 0.0;
+        let mut hit = false;
+        let mut t = f32::MAX;
+        let mut nu = 0.0;
+        let mut nv = 0.0;
+        let mut n = Vector4::new(0.0, 0.0, 0.0, 0.0);
 
         for i in 0..6 {
             let (p0, p1, p2) = match i {
@@ -135,26 +141,77 @@ impl Primitive for NonhierBox {
                 _ => panic!("This should never happen"),
             };
 
-            //let mut nn = (p1 - p0).cross(&(p2 - p0));
             let mut nn = math::cross_4d(&(p1 - p0), &(p2 - p0));
 
-            //let la = (origin.fixed_slice::<U3, U1>(0, 0) - p0).dot(&nn);
-            //let lb = (point.fixed_slice::<U3, U1>(0, 0) - p0).dot(&nn);
             let la = (origin - p0).dot(&nn);
             let lb = (point - p0).dot(&nn);
             let nt = la / (la - lb);
 
             // Invert normal if inside box
-            //if (origin - point).fixed_slice::<U3, U1>(0, 0).dot(&nn) < 0.0 {
             if (origin - point).dot(&nn) < 0.0 {
                 nn = -nn;
             }
 
             if nt < t && nt > math::EPSILON {
+                let pt = origin + (nt * (point - origin));
 
+                match i {
+                    0 | 1 => {
+                        let diff_x = pt.x - p0.x;
+                        let diff_y = pt.y - p0.y;
+                        if diff_x <= size && diff_x >= 0.0 && diff_y <= size && diff_y >= 0.0 {
+                            nu = diff_x / size;
+                            nv = diff_y / size;
+
+                            if i == 1 {
+                                nu = 1.0 - nu;
+                            }
+
+                            hit = true;
+                            t = nt;
+                            n = nn;
+                        }
+                    },
+                    2 | 3 => {
+                        let diff_z = pt.z - p0.z;
+                        let diff_y = pt.y - p0.y;
+                        if diff_z <= size && diff_z >= 0.0 && diff_y <= size && diff_y >= 0.0 {
+                            nu = diff_z / size;
+                            nv = diff_y / size;
+
+                            if i == 2 {
+                                nu = 1.0 - nu;
+                            }
+
+                            hit = true;
+                            t = nt;
+                            n = nn;
+                        }
+                    },
+                    4 | 5 => {
+                        let diff_x = pt.x - p0.x;
+                        let diff_z = pt.z - p0.z;
+                        if diff_x <= size && diff_x >= 0.0 && diff_z <= size && diff_z >= 0.0 {
+                            nu = diff_x / size;
+                            nv = diff_z / size;
+
+                            hit = true;
+                            t = nt;
+                            n = nn;
+                        }
+                    },
+                    _ => panic!("This should never happen"),
+                };
             }
         }
 
-        false
+        if hit {
+            *intersect = t;
+            *normal = n;
+            *u = nu;
+            *v = nv;
+        }
+
+        hit
     }
 }
