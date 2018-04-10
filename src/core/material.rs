@@ -3,11 +3,11 @@ use na::Vector3;
 pub struct Material {
     diffuse: Vector3<f32>,
     specular: Vector3<f32>,
-    shininess: f64,
+    shininess: f32,
 }
 
 impl Material {
-    fn new(diffuse: Vector3<f32>, specular: Vector3<f32>, shininess: f64) -> Self {
+    fn new(diffuse: Vector3<f32>, specular: Vector3<f32>, shininess: f32) -> Self {
         Material {
             diffuse: diffuse,
             specular: specular,
@@ -23,7 +23,7 @@ impl Material {
         &self.specular
     }
 
-    fn get_shininess(&self) -> f64 {
+    fn get_shininess(&self) -> f32 {
         self.shininess
     }
 }

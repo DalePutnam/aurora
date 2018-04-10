@@ -10,8 +10,8 @@ pub struct Ray {
 }
 
 pub struct Hit {
-    intersect: f64,
+    intersect: f32,
     normal: Vector4<f32>,
-    uv: (f64, f64),
+    uv: (f32, f32),
     node: Arc<RwLock<SceneNode>>,
 }
