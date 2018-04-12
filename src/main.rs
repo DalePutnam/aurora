@@ -4,44 +4,42 @@ extern crate nalgebra as na;
 mod core;
 mod lua;
 
-use lua::scene_lua::LuaSceneNode;
-use rlua::{Lua, Value, Result};
+use std::fs::File;
+use std::io::Read;
+use lua::scene_lua;
 
 fn main() {
-    test_rlua().unwrap();
-}
+    let args: Vec<String> = std::env::args().collect();
 
-fn test_rlua() -> Result<()> {
-    let lua = Lua::new();
-
-    let globals = lua.globals();
-    let gr = lua.create_table()?;
-
-    let scene_node_ctor = lua.create_function(|_, lua_name: Value| {
-        let name = match lua_name {
-            Value::String(string) => string.to_str().unwrap().to_string(),
-            _ => panic!("Failed to create node"),
+    if args.len() < 2 {
+        println!("No input file specified, exiting.");
+    } else {
+        let input_file = &args[1];
+        let mut file = match File::open(input_file) {
+            Ok(f) => f,
+            Err(e) => {
+                println!("Failed to open file {}: {}", input_file, e);
+                return;
+            },
         };
 
-        Ok(LuaSceneNode::new(&name))
-    })?;
+        let mut contents = String::new();
 
-    gr.set("node", scene_node_ctor)?;
-    globals.set("gr", gr)?;
+        match file.read_to_string(&mut contents) {
+            Ok(x) => x,
+            Err(e) => {
+                println!("Failed to read {} contents: {}", input_file, e);
+                return;
+            }
+        };
 
-    lua.exec::<()>(
-        r#"
-            print("Hello World from Lua!")
-            node = gr.node("Root")
-            node2 = gr.node("Child")
-            node:add_child(node2)
-
-            node:rotate('X', 1.0)
-            node:scale(1.0, 2.0, 1.0)
-            node:translate(1.0, 1.0, 1.0)
-        "#,
-        Some("Test"),
-    )?;
-
-    Ok(())
+        let lua = scene_lua::initialize_lua();
+        match lua.exec::<()>(&contents, Some(input_file)) {
+            Ok(_) => (),
+            Err(e) => {
+                println!("Failed to execute script {}: {}", input_file, e);
+                return;
+            },
+        };
+    }
 }

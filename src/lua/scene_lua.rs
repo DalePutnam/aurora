@@ -1,7 +1,8 @@
 use std::sync::{Arc, RwLock};
 use core::nodes::SceneNode;
 use na::Vector3;
-use rlua::{UserData, UserDataMethods, Value};
+use rlua::{Lua, UserData, UserDataMethods, Value};
+use rlua;
 
 pub struct LuaSceneNode {
     node: Arc<RwLock<SceneNode>>,
@@ -116,4 +117,28 @@ impl UserData for LuaSceneNode {
             }
         });
     }
+}
+
+pub fn initialize_lua() -> Lua {
+    let lua = Lua::new();
+
+    {
+        let globals = lua.globals();
+
+        let gr = lua.create_table().expect("Failed to create gr table");
+
+        let scene_node_ctor = lua.create_function(|_, lua_name: Value| {
+            let name = match lua_name {
+                Value::String(string) => string.to_str().unwrap().to_string(),
+                _ => panic!("Failed to create node"),
+            };
+
+            Ok(LuaSceneNode::new(&name))
+        }).expect("Failed to create LuaSceneNode constructor");
+
+        gr.set("node", scene_node_ctor).expect("Failed to assign LuaSceneNode constructor to gr.node");
+        globals.set("gr", gr).expect("Failed t add gr to globals");
+    }
+
+    lua
 }
