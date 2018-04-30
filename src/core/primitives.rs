@@ -1,11 +1,8 @@
-use na::{Vector4, Vector3, Matrix4, U3, U1, dot};
-use core::ray::Ray;
+use na::{Vector4, Vector3, Matrix4, dot};
+use core::Ray;
 use core::math;
+use core::traits::Primitive;
 use std::f32;
-
-pub trait Primitive: Send + Sync {
-    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>, intersect: &mut f32, normal: &mut Vector4<f32>, u: &mut f32, v: &mut f32) -> bool;
-}
 
 pub struct NonhierSphere {
     position: Vector4<f32>,

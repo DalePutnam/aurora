@@ -1,6 +1,4 @@
 use na::Vector4;
-use std::sync::{Arc, RwLock};
-use core::nodes::SceneNode;
 
 pub struct Ray {
     pub id: u32,
@@ -13,5 +11,14 @@ pub struct Hit {
     intersect: f32,
     normal: Vector4<f32>,
     uv: (f32, f32),
-    node: Arc<RwLock<SceneNode>>,
+}
+
+impl Hit {
+    pub fn new(intersect: f32, normal: Vector4<f32>, u: f32, v: f32) -> Self {
+        Hit {
+            intersect: intersect,
+            normal: normal,
+            uv: (u, v),
+        }
+    }
 }

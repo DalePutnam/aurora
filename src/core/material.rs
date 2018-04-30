@@ -7,7 +7,7 @@ pub struct Material {
 }
 
 impl Material {
-    fn new(diffuse: Vector3<f32>, specular: Vector3<f32>, shininess: f32) -> Self {
+    pub fn new(diffuse: Vector3<f32>, specular: Vector3<f32>, shininess: f32) -> Self {
         Material {
             diffuse: diffuse,
             specular: specular,

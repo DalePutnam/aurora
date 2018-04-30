@@ -2,11 +2,9 @@ extern crate rlua;
 extern crate nalgebra as na;
 
 mod core;
-mod lua;
+mod scene_builder;
 
-use std::fs::File;
-use std::io::Read;
-use lua::scene_lua;
+use scene_builder::SceneBuilder;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -15,31 +13,11 @@ fn main() {
         println!("No input file specified, exiting.");
     } else {
         let input_file = &args[1];
-        let mut file = match File::open(input_file) {
-            Ok(f) => f,
-            Err(e) => {
-                println!("Failed to open file {}: {}", input_file, e);
-                return;
-            },
-        };
+        let scene_builder = SceneBuilder::new();
 
-        let mut contents = String::new();
-
-        match file.read_to_string(&mut contents) {
-            Ok(x) => x,
-            Err(e) => {
-                println!("Failed to read {} contents: {}", input_file, e);
-                return;
-            }
-        };
-
-        let lua = scene_lua::initialize_lua();
-        match lua.exec::<()>(&contents, Some(input_file)) {
+        match scene_builder.run_build_script(input_file) {
             Ok(_) => (),
-            Err(e) => {
-                println!("Failed to execute script {}: {}", input_file, e);
-                return;
-            },
+            Err(e) => println!("{}", e),
         };
     }
 }
