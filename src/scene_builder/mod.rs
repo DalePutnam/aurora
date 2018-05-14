@@ -1,12 +1,11 @@
 mod lua_scene_node;
 mod lua_material;
+mod lua_light;
 
 use std::io::Read;
 use std::error::Error;
 use std::fs::File;
-use core::{Material};
 use rlua::{Lua, Value};
-use rlua;
 
 pub struct SceneBuilder {
     lua: Lua,
@@ -63,15 +62,23 @@ fn initialize_environment(lua: &mut Lua) {
     })
     .expect("Failed to create nh_box constructor");
 
+    // Material Constructor
     let material_ctor = lua.create_function(|_, (lua_diffuse, lua_specular, lua_shininess)| {
         lua_material::lua_material_constructor(lua_diffuse, lua_specular, lua_shininess)
     })
     .expect("Failed to create material constructor");
 
+    // Light Constructor
+    let light_ctor = lua.create_function(|_, (lua_position, lua_colour, lua_falloff)| {
+        lua_light::lua_light_constructor(lua_position, lua_colour, lua_falloff)
+    })
+    .expect("Failed to create light constructor");
+
     gr.set("node", scene_node_ctor).expect("Failed to assign LuaSceneNode constructor to gr.node");
     gr.set("nh_sphere", nh_sphere_ctor).expect("Failed to assign NonhierSphere constructor to gr.nh_sphere");
     gr.set("nh_box", nh_box_ctor).expect("Failed to assign NonhierBox constructor to gr.nh_box");
     gr.set("material", material_ctor).expect("Failed to assign Material constructor to gr.material");
+    gr.set("light", light_ctor).expect("Failed to assign Light constructor to gr.light");
 
     globals.set("gr", gr).expect("Failed to add gr to globals");
 }
