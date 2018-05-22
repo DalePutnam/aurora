@@ -5,17 +5,17 @@ use rlua::{UserData, UserDataMethods, Value};
 use na::Vector3;
 
 pub struct LuaMaterial {
-    material: Arc<Material>,
+    material: Arc<Box<Material>>,
 }
 
 impl LuaMaterial {
-    pub fn new(material: Material) -> Self {
+    pub fn new(material: Box<Material>) -> Self {
         LuaMaterial {
             material: Arc::new(material),
         }
     }
 
-    pub fn get_internal_material(&self) -> &Arc<Material> {
+    pub fn get_internal_material(&self) -> &Arc<Box<Material>> {
         &self.material
     }
 }
@@ -63,5 +63,5 @@ pub fn lua_material_constructor(lua_diffuse: Value, lua_specular: Value, lua_shi
         _ => return Err(rlua::Error::RuntimeError("gr.material expected an Integer or a Number as its third argument".to_string())),
     };
 
-    Ok(LuaMaterial::new(Material::new(diffuse, specular, shininess)))
+    Ok(LuaMaterial::new(Box::new(Material::new(diffuse, specular, shininess))))
 }

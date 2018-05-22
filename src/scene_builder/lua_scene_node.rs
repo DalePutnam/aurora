@@ -1,10 +1,11 @@
+use std::cell::RefCell;
 use std::sync::{RwLock, Arc};
 use na::{Matrix4, Vector3, Unit};
 use rlua;
 use rlua::{UserData, UserDataMethods, Value};
 use core::math::degrees_to_radians;
 use core::traits::Primitive;
-use core::{NonhierBox, NonhierSphere, Material};
+use core::{NonhierBox, NonhierSphere, Material, Object};
 use scene_builder::lua_material::LuaMaterial;
 
 pub struct LuaSceneNode {
@@ -14,6 +15,20 @@ pub struct LuaSceneNode {
 impl LuaSceneNode {
     fn new(scene_node: SceneNode) -> Self {
         LuaSceneNode { node: Arc::new(RwLock::new(scene_node)) }
+    }
+
+    pub (crate) fn convert_to_object_list(&self) -> Vec<Arc<Object>> {
+        let list = RefCell::new(Vec::new());
+        let mut id = 0;
+
+        match self.node.read() {
+            Ok(scene_node) => {
+                scene_node.convert_to_object_list(&list, &Matrix4::identity(), &mut id);
+            },
+            Err(_) => panic!("Node lock is poisoned!"),
+        };
+
+        list.into_inner()
     }
 }
 
@@ -226,7 +241,7 @@ struct SceneNode {
     inverse_matrix: Matrix4<f32>,
     children: Vec<Arc<RwLock<SceneNode>>>,
     primitive: Option<Arc<Box<Primitive>>>,
-    material: Option<Arc<Material>>
+    material: Option<Arc<Box<Material>>>
 }
 
 impl SceneNode {
@@ -241,6 +256,31 @@ impl SceneNode {
         }
     }
 
+    fn convert_to_object_list(&self, list: &RefCell<Vec<Arc<Object>>>, transform: &Matrix4<f32>, current_id: &mut u64) {
+        let new_transform = self.transform_matrix * transform;
+
+        if self.primitive.is_some() && self.material.is_some() {
+            let primitive = Arc::clone(self.primitive.as_ref().unwrap());
+            let material = Arc::clone(self.material.as_ref().unwrap());
+            let mut list_mut = list.borrow_mut();
+
+            list_mut.push(Arc::new(Object::new(*current_id, &new_transform, &primitive, &material)));
+        }
+
+        let mut id = *current_id + 1;
+
+        for node_lock in &self.children {
+            match node_lock.read() {
+                Ok(node) => {
+                    node.convert_to_object_list(list, &new_transform, &mut id);
+                },
+                Err(_) => panic!("Child lock is poisoned!"),
+            };
+        }
+
+        *current_id = id;
+    }
+
     fn get_name(&self) -> &String {
         &self.name
     }
@@ -253,11 +293,11 @@ impl SceneNode {
         self.primitive = Some(Arc::clone(primitive));
     }
 
-    fn get_material(&self) -> &Option<Arc<Material>> {
+    fn get_material(&self) -> &Option<Arc<Box<Material>>> {
         &self.material
     }
 
-    fn set_material(&mut self, material: &Arc<Material>) {
+    fn set_material(&mut self, material: &Arc<Box<Material>>) {
         self.material = Some(Arc::clone(material));
     }
 

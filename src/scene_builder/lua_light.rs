@@ -4,6 +4,7 @@ use rlua;
 use rlua::{UserData, UserDataMethods, Value};
 use na::Vector3;
 
+#[derive(Clone)]
 pub struct LuaLight {
     light: Arc<Light>,
 }
@@ -13,6 +14,10 @@ impl LuaLight {
         LuaLight {
             light: Arc::new(light),
         }
+    }
+
+    pub fn get_internal_light(&self) -> Arc<Light> {
+        Arc::clone(&self.light)
     }
 }
 
