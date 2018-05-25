@@ -5,6 +5,7 @@ pub use self::ray::Ray;
 pub use self::ray::Hit;
 pub use self::light::Light;
 pub use self::object::Object;
+pub use self::mesh::Mesh;
 
 pub mod traits;
 pub mod math;
@@ -13,6 +14,7 @@ pub mod material;
 pub mod ray;
 pub mod object;
 pub mod light;
+pub mod mesh;
 
 use std::sync::Arc;
 use na::{Vector3, Vector4, Matrix4};

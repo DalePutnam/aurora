@@ -5,7 +5,7 @@ use rlua;
 use rlua::{UserData, UserDataMethods, Value};
 use core::math::degrees_to_radians;
 use core::traits::Primitive;
-use core::{NonhierBox, NonhierSphere, Material, Object};
+use core::{NonhierBox, NonhierSphere, Mesh, Material, Object};
 use scene_builder::lua_material::LuaMaterial;
 
 pub struct LuaSceneNode {
@@ -233,6 +233,25 @@ pub fn lua_nh_box_constructor(lua_name: Value, lua_position: Value, lua_size: Va
     node.set_primitive(&nh_box);
 
     Ok(LuaSceneNode::new(node))    
+}
+
+pub fn lua_mesh_constructor(lua_name: Value, lua_file_name: Value) -> rlua::Result<LuaSceneNode> {
+    let name = match lua_name {
+        Value::String(string) => string.to_str().unwrap().to_string(),
+        _ => return Err(rlua::Error::RuntimeError("Failed to create mesh".to_string())),
+    };
+
+    let file_name = match lua_file_name {
+        Value::String(string) => string.to_str().unwrap().to_string(),
+        _ => return Err(rlua::Error::RuntimeError("Failed to create mesh".to_string())),
+    };
+
+    let mut node = SceneNode::new(&name);
+    let mesh: Arc<Box<Primitive>> = Arc::new(Box::new(Mesh::new(&file_name)));
+
+    node.set_primitive(&mesh);
+
+    Ok(LuaSceneNode::new(node))
 }
 
 struct SceneNode {

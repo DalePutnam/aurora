@@ -69,6 +69,12 @@ fn initialize_environment(lua: &mut Lua) {
     })
     .expect("Failed to create nh_box constructor");
 
+    // Mesh Constructor
+    let mesh_ctor = lua.create_function(|_, (lua_name, lua_file_name): (Value, Value)| {
+        lua_scene_node::lua_mesh_constructor(lua_name, lua_file_name)
+    })
+    .expect("Failed to create mesh constructor");
+
     // Material Constructor
     let material_ctor = lua.create_function(|_, (lua_diffuse, lua_specular, lua_shininess)| {
         lua_material::lua_material_constructor(lua_diffuse, lua_specular, lua_shininess)
@@ -90,6 +96,7 @@ fn initialize_environment(lua: &mut Lua) {
     gr.set("node", scene_node_ctor).expect("Failed to assign LuaSceneNode constructor to gr.node");
     gr.set("nh_sphere", nh_sphere_ctor).expect("Failed to assign NonhierSphere constructor to gr.nh_sphere");
     gr.set("nh_box", nh_box_ctor).expect("Failed to assign NonhierBox constructor to gr.nh_box");
+    gr.set("mesh", mesh_ctor).expect("Failed to assign Mesh constructor to gr.mesh");
     gr.set("material", material_ctor).expect("Failed to assign Material constructor to gr.material");
     gr.set("light", light_ctor).expect("Failed to assign Light constructor to gr.light");
     gr.set("render", render).expect("Failed to assign render function to gr.render");
