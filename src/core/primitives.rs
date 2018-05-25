@@ -62,6 +62,7 @@ impl Primitive for NonhierSphere {
                     }
 
                     *normal = transform.transpose() * n;
+                    normal.w = 0.0;
 
                     true
                 }
@@ -204,7 +205,8 @@ impl Primitive for NonhierBox {
 
         if hit {
             *intersect = t;
-            *normal = n;
+            *normal = transform.transpose() * n;
+            normal.w = 0.0;
             *u = nu;
             *v = nv;
         }

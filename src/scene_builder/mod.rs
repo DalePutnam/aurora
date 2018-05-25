@@ -199,10 +199,9 @@ fn lua_render(lua_scene_root: Value, lua_output_name: Value, lua_width: Value, l
         Value::Table(table) => {
             let mut vec = Vec::new();
 
-            let mut i = 0;
-            while table.contains_key(i)? {
-                vec.push(table.get::<u32, LuaLight>(i)?.get_internal_light());
-                i += 1;
+            for value in table.sequence_values::<LuaLight>() {
+                let light = value?;
+                vec.push(light.get_internal_light());
             }
 
             vec

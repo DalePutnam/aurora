@@ -8,9 +8,9 @@ pub struct Ray {
 }
 
 pub struct Hit {
-    intersect: f32,
-    normal: Vector4<f32>,
-    uv: (f32, f32),
+    pub intersect: f32,
+    pub normal: Vector4<f32>,
+    pub uv: (f32, f32),
 }
 
 impl Hit {

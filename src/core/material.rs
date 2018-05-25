@@ -15,15 +15,15 @@ impl Material {
         }
     }
 
-    fn get_diffuse(&self) -> &Vector3<f32> {
+    pub fn get_diffuse(&self) -> &Vector3<f32> {
         &self.diffuse
     }
 
-    fn get_specular(&self) -> &Vector3<f32> {
+    pub fn get_specular(&self) -> &Vector3<f32> {
         &self.specular
     }
 
-    fn get_shininess(&self) -> f32 {
+    pub fn get_shininess(&self) -> f32 {
         self.shininess
     }
 }
