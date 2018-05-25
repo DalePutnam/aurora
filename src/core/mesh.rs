@@ -1,5 +1,5 @@
 use core::traits::Primitive;
-use core::Ray;
+use core::{Ray, BoundingBox};
 use core::math;
 use std::io::BufReader;
 use std::io::prelude::*;
@@ -10,6 +10,7 @@ use na::{Matrix4, Matrix3, Vector4, Vector3};
 pub struct Mesh {
     vertices: Vec<Vector4<f32>>,
     faces: Vec<Triangle>,
+    bounding_box: BoundingBox,
 }
 
 struct Triangle {
@@ -49,15 +50,33 @@ impl Mesh {
             };
         }
 
+        let mut max = Vector4::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY, 1.0);
+        let mut min = Vector4::new(f32::INFINITY, f32::INFINITY, f32::INFINITY, 1.0);
+
+        for vertex in &vertices {
+            if min.x > vertex.x { min.x = vertex.x };
+            if min.y > vertex.y { min.y = vertex.y };
+            if min.z > vertex.z { min.z = vertex.z };
+
+            if max.x < vertex.x { max.x = vertex.x };
+            if max.y < vertex.y { max.y = vertex.y };
+            if max.z < vertex.z { max.z = vertex.z };
+        } 
+
         Mesh {
             vertices: vertices,
             faces: faces,
+            bounding_box: BoundingBox::new(&min, &max),
         }
     }
 }
 
 impl Primitive for Mesh {
     fn hit(&self, ray: &Ray, transform: &Matrix4<f32>, intersect: &mut f32, normal: &mut Vector4<f32>, u: &mut f32, v: &mut f32) -> bool {
+        if !self.bounding_box.hit(ray, transform) {
+            return false;
+        }
+
         let point = transform * ray.point;
         let origin = transform * ray.origin;
 

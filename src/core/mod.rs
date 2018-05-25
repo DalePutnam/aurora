@@ -6,6 +6,7 @@ pub use self::ray::Hit;
 pub use self::light::Light;
 pub use self::object::Object;
 pub use self::mesh::Mesh;
+pub use self::bounding_box::BoundingBox;
 
 pub mod traits;
 pub mod math;
@@ -15,6 +16,7 @@ pub mod ray;
 pub mod object;
 pub mod light;
 pub mod mesh;
+pub mod bounding_box;
 
 use std::sync::Arc;
 use na::{Vector3, Vector4, Matrix4};

@@ -255,7 +255,7 @@ pub fn lua_mesh_constructor(lua_name: Value, lua_file_name: Value) -> rlua::Resu
 }
 
 struct SceneNode {
-    name: String,
+    _name: String,
     transform_matrix: Matrix4<f32>,
     inverse_matrix: Matrix4<f32>,
     children: Vec<Arc<RwLock<SceneNode>>>,
@@ -266,7 +266,7 @@ struct SceneNode {
 impl SceneNode {
     fn new(name: &str) -> Self {
         SceneNode { 
-            name: name.to_string(),
+            _name: name.to_string(),
             transform_matrix: Matrix4::<f32>::identity(),
             inverse_matrix: Matrix4::<f32>::identity(),
             children: Vec::new(),
@@ -276,7 +276,7 @@ impl SceneNode {
     }
 
     fn convert_to_object_list(&self, list: &RefCell<Vec<Arc<Object>>>, transform: &Matrix4<f32>, current_id: &mut u64) {
-        let new_transform = self.transform_matrix * transform;
+        let new_transform = transform * self.transform_matrix;
 
         if self.primitive.is_some() && self.material.is_some() {
             let primitive = Arc::clone(self.primitive.as_ref().unwrap());
@@ -300,32 +300,12 @@ impl SceneNode {
         *current_id = id;
     }
 
-    fn get_name(&self) -> &String {
-        &self.name
-    }
-
-    fn get_primitive(&self) -> &Option<Arc<Box<Primitive>>> {
-        &self.primitive
-    }
-
     fn set_primitive(&mut self, primitive: &Arc<Box<Primitive>>) {
         self.primitive = Some(Arc::clone(primitive));
     }
 
-    fn get_material(&self) -> &Option<Arc<Box<Material>>> {
-        &self.material
-    }
-
     fn set_material(&mut self, material: &Arc<Box<Material>>) {
         self.material = Some(Arc::clone(material));
-    }
-
-    fn get_transform(&self) -> &Matrix4<f32> {
-        &self.transform_matrix
-    }
-
-    fn get_inverse_transform(&self) -> &Matrix4<f32> {
-        &self.inverse_matrix
     }
 
     fn rotate(&mut self, axis: char, angle: f32) {
