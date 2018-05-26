@@ -29,25 +29,28 @@ impl Mesh {
 
         for line in reader.lines() {
             let line = line.unwrap();
-            let mut line_array = line.split(' ');
+            
+            let mut line_iter = line.split_whitespace();
 
-            match line_array.next().unwrap() {
-                "v" => {
-                    let x = line_array.next().unwrap().parse::<f32>().unwrap();
-                    let y = line_array.next().unwrap().parse::<f32>().unwrap();
-                    let z = line_array.next().unwrap().parse::<f32>().unwrap();
+            if let Some(data_type) = line_iter.next() {
+                match data_type {
+                    "v" => {
+                        let x = line_iter.next().unwrap().parse::<f32>().unwrap();
+                        let y = line_iter.next().unwrap().parse::<f32>().unwrap();
+                        let z = line_iter.next().unwrap().parse::<f32>().unwrap();
 
-                    vertices.push(Vector4::new(x, y, z, 1.0));
-                },
-                "f" => {
-                    let v1 = line_array.next().unwrap().parse::<usize>().unwrap();
-                    let v2 = line_array.next().unwrap().parse::<usize>().unwrap();
-                    let v3 = line_array.next().unwrap().parse::<usize>().unwrap();
+                        vertices.push(Vector4::new(x, y, z, 1.0));
+                    },
+                    "f" => {
+                        let v1 = line_iter.next().unwrap().parse::<usize>().unwrap();
+                        let v2 = line_iter.next().unwrap().parse::<usize>().unwrap();
+                        let v3 = line_iter.next().unwrap().parse::<usize>().unwrap();
 
-                    faces.push(Triangle { v1: v1 - 1, v2: v2 - 1, v3: v3 - 1 });
-                },
-                _ => {},
-            };
+                        faces.push(Triangle { v1: v1 - 1, v2: v2 - 1, v3: v3 - 1 });
+                    },
+                    _ => {},
+                };
+            }
         }
 
         let mut max = Vector4::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY, 1.0);

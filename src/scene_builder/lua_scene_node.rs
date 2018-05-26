@@ -5,7 +5,7 @@ use rlua;
 use rlua::{UserData, UserDataMethods, Value};
 use core::math::degrees_to_radians;
 use core::traits::Primitive;
-use core::{NonhierBox, NonhierSphere, Mesh, Material, Object};
+use core::{NonhierBox, NonhierSphere, Sphere, Cube, Mesh, Material, Object};
 use scene_builder::lua_material::LuaMaterial;
 
 pub struct LuaSceneNode {
@@ -233,6 +233,34 @@ pub fn lua_nh_box_constructor(lua_name: Value, lua_position: Value, lua_size: Va
     node.set_primitive(&nh_box);
 
     Ok(LuaSceneNode::new(node))    
+}
+
+pub fn lua_sphere_constructor(lua_name: Value) -> rlua::Result<LuaSceneNode> {
+    let name = match lua_name {
+        Value::String(string) => string.to_str().unwrap().to_string(),
+        _ => return Err(rlua::Error::RuntimeError("Failed to create sphere".to_string())),
+    };
+
+    let mut node = SceneNode::new(&name);
+    let sphere: Arc<Box<Primitive>> = Arc::new(Box::new(Sphere::new()));
+
+    node.set_primitive(&sphere);
+
+    Ok(LuaSceneNode::new(node))
+}
+
+pub fn lua_cube_constructor(lua_name: Value) -> rlua::Result<LuaSceneNode> {
+    let name = match lua_name {
+        Value::String(string) => string.to_str().unwrap().to_string(),
+        _ => return Err(rlua::Error::RuntimeError("Failed to create cube".to_string())),
+    };
+
+    let mut node = SceneNode::new(&name);
+    let cube: Arc<Box<Primitive>> = Arc::new(Box::new(Cube::new()));
+
+    node.set_primitive(&cube);
+
+    Ok(LuaSceneNode::new(node))
 }
 
 pub fn lua_mesh_constructor(lua_name: Value, lua_file_name: Value) -> rlua::Result<LuaSceneNode> {

@@ -58,19 +58,31 @@ fn initialize_environment(lua: &mut Lua) {
     .expect("Failed to create node constructor");
 
     // NonhierSphere Constructor
-    let nh_sphere_ctor = lua.create_function(|_, (lua_name, lua_position, lua_radius): (Value, Value, Value)| {
+    let nh_sphere_ctor = lua.create_function(|_, (lua_name, lua_position, lua_radius)| {
         lua_scene_node::lua_nh_sphere_constructor(lua_name, lua_position, lua_radius)
     })
     .expect("Failed to create nh_sphere constructor");
 
     // NonhierBox Constructor
-    let nh_box_ctor = lua.create_function(|_, (lua_name, lua_position, lua_size): (Value, Value, Value)| {
+    let nh_box_ctor = lua.create_function(|_, (lua_name, lua_position, lua_size)| {
         lua_scene_node::lua_nh_box_constructor(lua_name, lua_position, lua_size)
     })
     .expect("Failed to create nh_box constructor");
 
+    // Sphere Constructor
+    let sphere_ctor = lua.create_function(|_, lua_name| {
+        lua_scene_node::lua_sphere_constructor(lua_name)
+    })
+    .expect("Failed to create sphere constructor");
+
+    // Cube Constructor
+    let cube_ctor = lua.create_function(|_, lua_name| {
+        lua_scene_node::lua_cube_constructor(lua_name)
+    })
+    .expect("Failed to create cube constructor");
+
     // Mesh Constructor
-    let mesh_ctor = lua.create_function(|_, (lua_name, lua_file_name): (Value, Value)| {
+    let mesh_ctor = lua.create_function(|_, (lua_name, lua_file_name)| {
         lua_scene_node::lua_mesh_constructor(lua_name, lua_file_name)
     })
     .expect("Failed to create mesh constructor");
@@ -96,6 +108,8 @@ fn initialize_environment(lua: &mut Lua) {
     gr.set("node", scene_node_ctor).expect("Failed to assign LuaSceneNode constructor to gr.node");
     gr.set("nh_sphere", nh_sphere_ctor).expect("Failed to assign NonhierSphere constructor to gr.nh_sphere");
     gr.set("nh_box", nh_box_ctor).expect("Failed to assign NonhierBox constructor to gr.nh_box");
+    gr.set("sphere", sphere_ctor).expect("Failed to assign Sphere constructor to gr.sphere");
+    gr.set("cube", cube_ctor).expect("Failed to assign Cube constructor to gr.cube");
     gr.set("mesh", mesh_ctor).expect("Failed to assign Mesh constructor to gr.mesh");
     gr.set("material", material_ctor).expect("Failed to assign Material constructor to gr.material");
     gr.set("light", light_ctor).expect("Failed to assign Light constructor to gr.light");
