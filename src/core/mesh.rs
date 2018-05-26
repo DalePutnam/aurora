@@ -5,7 +5,7 @@ use std::io::BufReader;
 use std::io::prelude::*;
 use std::fs::File;
 use std::f32;
-use na::{Matrix4, Matrix3, Vector4, Vector3};
+use na::{Matrix4, Matrix3, Vector4};
 
 pub struct Mesh {
     vertices: Vec<Vector4<f32>>,
@@ -82,46 +82,68 @@ impl Primitive for Mesh {
 
         let point = transform * ray.point;
         let origin = transform * ray.origin;
+        let op = origin - point;
 
-        let mut hit = false;
-        let mut t = f32::INFINITY;
+        let mut hit_info: Option<(&Vector4<f32>, &Vector4<f32>, &Vector4<f32>, f32)> = None;
 
         for face in &self.faces {
-            let p0 = self.vertices[face.v1];
-            let p1 = self.vertices[face.v2];
-            let p2 = self.vertices[face.v3];
+            let p0 = &self.vertices[face.v1];
+            let p1 = &self.vertices[face.v2];
+            let p2 = &self.vertices[face.v3];
 
-            let r = Vector3::new(origin.x - p0.x, origin.y - p0.y, origin.z - p0.z);
-            let x = Vector3::new(p1.x - p0.x, p2.x - p0.x, origin.x - point.x);
-            let y = Vector3::new(p1.y - p0.y, p2.y - p0.y, origin.y - point.y);
-            let z = Vector3::new(p1.z - p0.z, p2.z - p0.z, origin.z - point.z);
+            let r = [origin.x - p0.x, origin.y - p0.y, origin.z - p0.z];
+            let x = [p1.x - p0.x, p2.x - p0.x, op.x];
+            let y = [p1.y - p0.y, p2.y - p0.y, op.y];
+            let z = [p1.z - p0.z, p2.z - p0.z, op.z];
 
-            let d  = Matrix3::from_columns(&vec!(Vector3::new(x.x, y.x, z.x), Vector3::new(x.y, y.y, z.y), Vector3::new(x.z, y.z, z.z))).determinant();
-            let d1 = Matrix3::from_columns(&vec!(r, Vector3::new(x.y, y.y, z.y), Vector3::new(x.z, y.z, z.z))).determinant();
-            let d2 = Matrix3::from_columns(&vec!(Vector3::new(x.x, y.x, z.x), r, Vector3::new(x.z, y.z, z.z))).determinant();
-            let d3 = Matrix3::from_columns(&vec!(Vector3::new(x.x, y.x, z.x), Vector3::new(x.y, y.y, z.y), r)).determinant();
+            let d = Matrix3::new(x[0], x[1], x[2],
+                                 y[0], y[1], y[2],
+                                 z[0], z[1], z[2]).determinant();
+
+            let d1 = Matrix3::new(r[0], x[1], x[2],
+                                  r[1], y[1], y[2],
+                                  r[2], z[1], z[2]).determinant();
+
+            let d2 = Matrix3::new(x[0], r[0], x[2],
+                                  y[0], r[1], y[2],
+                                  z[0], r[2], z[2]).determinant();
+                        
+            let d3 = Matrix3::new(x[0], x[1], r[0],
+                                  y[0], y[1], r[1],
+                                  z[0], z[1], r[2]).determinant();
 
             let beta = d1 / d;
             let gamma = d2 / d;
             let nt = d3 / d;
 
-            if beta >= 0.0 && gamma >= 0.0 && beta + gamma <= 1.0 && nt < t && nt > math::EPSILON {
-                let mut n = math::cross_4d(&(p1 - p0), &(p2 - p0));
-
-                if (origin - point).dot(&n) < 0.0 {
-                    n = -n;
+            if beta >= 0.0 && gamma >= 0.0 && beta + gamma <= 1.0 && nt > math::EPSILON {
+                if let Some((_, _, _, t)) = hit_info {
+                    if nt < t {
+                        hit_info = Some((p0, p1, p2, nt))
+                    }
+                } else {
+                    hit_info = Some((p0, p1, p2, nt))
                 }
-
-                hit = true;
-                t = nt;
-                *intersect = t;
-                *normal = transform.transpose() * n;
-                normal.w = 0.0;
-                *u = 0.0;
-                *v = 0.0;
             }
         }
 
-        hit
+        if let Some((p0, p1, p2, t)) = hit_info {
+            let mut n = math::cross_4d(&(p1 - p0), &(p2 - p0));
+            if op.dot(&n) < 0.0 {
+                n = -n;
+            }
+
+            n = transform.transpose() * n;
+            n.w = 0.0;
+
+            *normal = n;
+            *intersect = t;
+            *u = 0.0;
+            *v = 0.0;
+
+            true
+        } else {
+            false
+        }
     }
 }
