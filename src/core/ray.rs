@@ -12,13 +12,3 @@ pub struct Hit {
     pub normal: Vector4<f32>,
     pub uv: (f32, f32),
 }
-
-impl Hit {
-    pub fn new(intersect: f32, normal: Vector4<f32>, u: f32, v: f32) -> Self {
-        Hit {
-            intersect: intersect,
-            normal: normal,
-            uv: (u, v),
-        }
-    }
-}

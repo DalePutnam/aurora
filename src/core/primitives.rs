@@ -1,5 +1,5 @@
 use na::{Vector4, Vector3, Matrix4, dot};
-use core::Ray;
+use core::{Ray, Hit};
 use core::math;
 use core::traits::Primitive;
 use std::f32;
@@ -19,7 +19,7 @@ impl NonhierSphere {
 }
 
 impl Primitive for NonhierSphere {
-    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>, intersect: &mut f32, normal: &mut Vector4<f32>, u: &mut f32, v: &mut f32) -> bool {
+    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit> {
         let point = transform * ray.point;
         let origin = transform * ray.origin;
 
@@ -31,12 +31,12 @@ impl Primitive for NonhierSphere {
         let c = dot(&oc, &oc) - (self.radius * self.radius);
 
         match math::quadratic_roots(a, b, c) {
-            math::QuadRoots::Zero | math::QuadRoots::One(_) => false,
+            math::QuadRoots::Zero | math::QuadRoots::One(_) => None,
             math::QuadRoots::Two(root_one, root_two) => {
                 if root_one < math::EPSILON && root_two < math::EPSILON {
-                    false
+                    None
                 } else {
-                    *intersect = if root_one <= root_two { 
+                    let t = if root_one <= root_two { 
                         if root_one > math::EPSILON {
                             root_one
                         } else {
@@ -50,21 +50,17 @@ impl Primitive for NonhierSphere {
                         }
                     };
 
-                    let mut n = (origin + (*intersect * po)) - self.position;
-
-                    // TODO: Calculate UVs
-                    *u = 0.0;
-                    *v = 0.0;
+                    let mut n = (origin + (t * po)) - self.position;
 
                     // Invert normal if inside sphere
                     if n.dot(&(origin - point)) < 0.0 {
                         n = -n;
                     }
 
-                    *normal = transform.transpose() * n;
-                    normal.w = 0.0;
+                    n = transform.transpose() * n;
+                    n.w = 0.0;
 
-                    true
+                    Some(Hit { normal: n, intersect: t, uv: (0.0, 0.0) })
                 }
             },
         }
@@ -86,17 +82,13 @@ impl NonhierBox {
 }
 
 impl Primitive for NonhierBox {
-    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>, intersect: &mut f32, normal: &mut Vector4<f32>, u: &mut f32, v: &mut f32) -> bool {
+    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit> {
         let point = transform * ray.point;
         let origin = transform * ray.origin;
         let position = &self.position;
         let size = self.size;
 
-        let mut hit = false;
-        let mut t = f32::MAX;
-        let mut nu = 0.0;
-        let mut nv = 0.0;
-        let mut n = Vector4::new(0.0, 0.0, 0.0, 0.0);
+        let mut hit_info: Option<(Vector4<f32>, f32, f32, f32)> = None;
 
         for i in 0..6 {
             let (p0, p1, p2) = match i {
@@ -145,10 +137,7 @@ impl Primitive for NonhierBox {
             let lb = (point - p0).dot(&nn);
             let nt = la / (la - lb);
 
-            // Invert normal if inside box
-            if (origin - point).dot(&nn) < 0.0 {
-                nn = -nn;
-            }
+            let t = if let Some((_, t, _, _)) = hit_info { t } else { f32::INFINITY };
 
             if nt < t && nt > math::EPSILON {
                 let pt = origin + (nt * (point - origin));
@@ -158,44 +147,38 @@ impl Primitive for NonhierBox {
                         let diff_x = pt.x - p0.x;
                         let diff_y = pt.y - p0.y;
                         if diff_x <= size && diff_x >= 0.0 && diff_y <= size && diff_y >= 0.0 {
-                            nu = diff_x / size;
-                            nv = diff_y / size;
+                            let mut u = diff_x / size;
+                            let mut v = diff_y / size;
 
                             if i == 1 {
-                                nu = 1.0 - nu;
+                                u = 1.0 - u;
                             }
 
-                            hit = true;
-                            t = nt;
-                            n = nn;
+                            hit_info = Some((nn, nt, u, v));
                         }
                     },
                     2 | 3 => {
                         let diff_z = pt.z - p0.z;
                         let diff_y = pt.y - p0.y;
                         if diff_z <= size && diff_z >= 0.0 && diff_y <= size && diff_y >= 0.0 {
-                            nu = diff_z / size;
-                            nv = diff_y / size;
+                            let mut u = diff_z / size;
+                            let mut v = diff_y / size;
 
                             if i == 2 {
-                                nu = 1.0 - nu;
+                                u = 1.0 - u;
                             }
 
-                            hit = true;
-                            t = nt;
-                            n = nn;
+                            hit_info = Some((nn, nt, u, v));
                         }
                     },
                     4 | 5 => {
                         let diff_x = pt.x - p0.x;
                         let diff_z = pt.z - p0.z;
                         if diff_x <= size && diff_x >= 0.0 && diff_z <= size && diff_z >= 0.0 {
-                            nu = diff_x / size;
-                            nv = diff_z / size;
+                            let u = diff_x / size;
+                            let v = diff_z / size;
 
-                            hit = true;
-                            t = nt;
-                            n = nn;
+                            hit_info = Some((nn, nt, u, v));
                         }
                     },
                     _ => panic!("This should never happen"),
@@ -203,15 +186,19 @@ impl Primitive for NonhierBox {
             }
         }
 
-        if hit {
-            *intersect = t;
-            *normal = transform.transpose() * n;
-            normal.w = 0.0;
-            *u = nu;
-            *v = nv;
-        }
+        if let Some((mut normal, intersect, u, v)) = hit_info {
+            // Invert normal if inside box
+            if (origin - point).dot(&normal) < 0.0 {
+                normal = -normal;
+            }
 
-        hit
+            normal = transform.transpose() * normal;
+            normal.w = 0.0;
+
+            Some(Hit { normal: normal, intersect: intersect, uv: (u, v) })
+        } else {
+            None
+        }
     }
 }
 
@@ -224,7 +211,7 @@ impl Sphere {
 }
 
 impl Primitive for Sphere {
-    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>, intersect: &mut f32, normal: &mut Vector4<f32>, u: &mut f32, v: &mut f32) -> bool {
+    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit> {
         let point = transform * ray.point;
         let origin = transform * ray.origin;
 
@@ -236,12 +223,12 @@ impl Primitive for Sphere {
         let c = dot(&oc, &oc) - 1.0;
 
         match math::quadratic_roots(a, b, c) {
-            math::QuadRoots::Zero | math::QuadRoots::One(_) => false,
+            math::QuadRoots::Zero | math::QuadRoots::One(_) => None,
             math::QuadRoots::Two(root_one, root_two) => {
                 if root_one < math::EPSILON && root_two < math::EPSILON {
-                    false
+                    None
                 } else {
-                    *intersect = if root_one <= root_two { 
+                    let t = if root_one <= root_two { 
                         if root_one > math::EPSILON {
                             root_one
                         } else {
@@ -255,21 +242,17 @@ impl Primitive for Sphere {
                         }
                     };
 
-                    let mut n = origin + (*intersect * po);
-
-                    // TODO: Calculate UVs
-                    *u = 0.0;
-                    *v = 0.0;
+                    let mut n = origin + (t * po);
 
                     // Invert normal if inside sphere
                     if n.dot(&(origin - point)) < 0.0 {
                         n = -n;
                     }
 
-                    *normal = transform.transpose() * n;
-                    normal.w = 0.0;
+                    n = transform.transpose() * n;
+                    n.w = 0.0;
 
-                    true
+                    Some(Hit { normal: n, intersect: t, uv: (0.0, 0.0) })
                 }
             },
         }
@@ -285,15 +268,11 @@ impl Cube {
 }
 
 impl Primitive for Cube {
-    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>, intersect: &mut f32, normal: &mut Vector4<f32>, u: &mut f32, v: &mut f32) -> bool {
+    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit> {
         let point = transform * ray.point;
         let origin = transform * ray.origin;
 
-        let mut hit = false;
-        let mut t = f32::MAX;
-        let mut nu = 0.0;
-        let mut nv = 0.0;
-        let mut n = Vector4::new(0.0, 0.0, 0.0, 0.0);
+        let mut hit_info: Option<(Vector4<f32>, f32, f32, f32)> = None;
 
         for i in 0..6 {
             let (p0, p1, p2) = match i {
@@ -342,10 +321,7 @@ impl Primitive for Cube {
             let lb = (point - p0).dot(&nn);
             let nt = la / (la - lb);
 
-            // Invert normal if inside box
-            if (origin - point).dot(&nn) < 0.0 {
-                nn = -nn;
-            }
+            let t = if let Some((_, t, _, _)) = hit_info { t } else { f32::INFINITY };
 
             if nt < t && nt > math::EPSILON {
                 let pt = origin + (nt * (point - origin));
@@ -355,44 +331,38 @@ impl Primitive for Cube {
                         let diff_x = pt.x - p0.x;
                         let diff_y = pt.y - p0.y;
                         if diff_x <= 1.0 && diff_x >= 0.0 && diff_y <= 1.0 && diff_y >= 0.0 {
-                            nu = diff_x;
-                            nv = diff_y;
+                            let mut u = diff_x;
+                            let mut v = diff_y;
 
                             if i == 1 {
-                                nu = 1.0 - nu;
+                                u = 1.0 - u;
                             }
 
-                            hit = true;
-                            t = nt;
-                            n = nn;
+                            hit_info = Some((nn, nt, u, v));
                         }
                     },
                     2 | 3 => {
                         let diff_z = pt.z - p0.z;
                         let diff_y = pt.y - p0.y;
                         if diff_z <= 1.0 && diff_z >= 0.0 && diff_y <= 1.0 && diff_y >= 0.0 {
-                            nu = diff_z;
-                            nv = diff_y;
+                            let mut u = diff_z;
+                            let mut v = diff_y;
 
                             if i == 2 {
-                                nu = 1.0 - nu;
+                                u = 1.0 - u;
                             }
 
-                            hit = true;
-                            t = nt;
-                            n = nn;
+                            hit_info = Some((nn, nt, u, v));
                         }
                     },
                     4 | 5 => {
                         let diff_x = pt.x - p0.x;
                         let diff_z = pt.z - p0.z;
                         if diff_x <= 1.0 && diff_x >= 0.0 && diff_z <= 1.0 && diff_z >= 0.0 {
-                            nu = diff_x;
-                            nv = diff_z;
+                            let mut u = diff_x;
+                            let mut v = diff_z;
 
-                            hit = true;
-                            t = nt;
-                            n = nn;
+                            hit_info = Some((nn, nt, u, v));
                         }
                     },
                     _ => panic!("This should never happen"),
@@ -400,14 +370,18 @@ impl Primitive for Cube {
             }
         }
 
-        if hit {
-            *intersect = t;
-            *normal = transform.transpose() * n;
-            normal.w = 0.0;
-            *u = nu;
-            *v = nv;
-        }
+        if let Some((mut normal, intersect, u, v)) = hit_info {
+            // Invert normal if inside box
+            if (origin - point).dot(&normal) < 0.0 {
+                normal = -normal;
+            }
 
-        hit
+            normal = transform.transpose() * normal;
+            normal.w = 0.0;
+
+            Some(Hit { normal: normal, intersect: intersect, uv: (u, v) })
+        } else {
+            None
+        }
     }
 }

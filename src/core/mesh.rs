@@ -1,5 +1,5 @@
 use core::traits::Primitive;
-use core::{Ray, BoundingBox};
+use core::{Ray, Hit, BoundingBox};
 use core::math;
 use std::io::BufReader;
 use std::io::prelude::*;
@@ -75,9 +75,9 @@ impl Mesh {
 }
 
 impl Primitive for Mesh {
-    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>, intersect: &mut f32, normal: &mut Vector4<f32>, u: &mut f32, v: &mut f32) -> bool {
+    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit> {
         if !self.bounding_box.hit(ray, transform) {
-            return false;
+            return None;
         }
 
         let point = transform * ray.point;
@@ -136,14 +136,9 @@ impl Primitive for Mesh {
             n = transform.transpose() * n;
             n.w = 0.0;
 
-            *normal = n;
-            *intersect = t;
-            *u = 0.0;
-            *v = 0.0;
-
-            true
+            Some(Hit { normal: n, intersect: t, uv: (0.0, 0.0) })
         } else {
-            false
+            None
         }
     }
 }

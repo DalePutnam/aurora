@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use na::{Matrix4, Vector4};
+use na::Matrix4;
 use core::traits::Primitive;
 use core::{Material, Ray, Hit};
 
@@ -24,12 +24,7 @@ impl Object {
     }
 
     pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, Arc<Box<Material>>)> {
-        let mut intersect = 0.0;
-        let mut normal = Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0);
-        let mut uv = (0.0, 0.0);
-
-        if self.primitive.hit(ray, &self.inverse_transform, &mut intersect, &mut normal, &mut uv.0, &mut uv.1) {
-            let hit = Hit::new(intersect, normal, uv.0, uv.1);
+        if let Some(hit) = self.primitive.hit(ray, &self.inverse_transform) {
             Some((hit, Arc::clone(&self.material)))
         } else {
             None
