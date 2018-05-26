@@ -22,9 +22,7 @@ impl LuaLight {
 }
 
 impl UserData for LuaLight {
-    fn add_methods(_methods: &mut UserDataMethods<Self>) {
-
-    }
+    fn add_methods(_methods: &mut UserDataMethods<Self>) {}
 }
 
 pub fn lua_light_constructor(lua_position: Value, lua_colour: Value, lua_falloff: Value) -> rlua::Result<LuaLight> {

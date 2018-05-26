@@ -11,7 +11,7 @@ pub use self::mesh::Mesh;
 pub use self::bounding_box::BoundingBox;
 
 pub mod traits;
-pub mod math;
+pub mod util;
 pub mod primitives;
 pub mod material;
 pub mod ray;
@@ -43,22 +43,22 @@ pub fn render(objects: Vec<Arc<Object>>, output_name: String, output_width: u32,
 
     let hi = 2.0;
     let wi = (nx * hi) / ny;
-    let d = hi / (2.0 * f32::tan(math::degrees_to_radians(fov_y / 2.0)));
+    let d = hi / (2.0 * (fov_y / 2.0).to_radians().tan());
 
     let w = (view - eye).normalize();
     let u = up.cross(&w).normalize();
     let v = u.cross(&w);
 
-    let t1 = Matrix4::<f32>::new_translation(&Vector3::new(-nx / 2.0, -ny / 2.0, d));
-    let s2 = Matrix4::<f32>::new_nonuniform_scaling(&Vector3::new(-hi / ny, wi / nx, 1.0));
-    let r3 = Matrix4::<f32>::from_columns(&vec!(Vector4::new(u.x, u.y, u.z, 0.0),
-                                                Vector4::new(v.x, v.y, v.z, 0.0),
-                                                Vector4::new(w.x, w.y, w.z, 0.0),
-                                                Vector4::new(0.0, 0.0, 0.0, 1.0)));
-    let t4 = Matrix4::<f32>::from_columns(&vec!(Vector4::new(1.0, 0.0, 0.0, 0.0),
-                                                Vector4::new(0.0, 1.0, 0.0, 0.0),
-                                                Vector4::new(0.0, 0.0, 1.0, 0.0),
-                                                Vector4::new(eye.x, eye.y, eye.z, 1.0)));
+    let t1 = Matrix4::new_translation(&Vector3::new(-nx / 2.0, -ny / 2.0, d));
+    let s2 = Matrix4::new_nonuniform_scaling(&Vector3::new(-hi / ny, wi / nx, 1.0));
+    let r3 = Matrix4::new(u.x, v.x, w.x, 0.0,
+                          u.y, v.y, w.y, 0.0,
+                          u.z, v.z, w.z, 0.0,
+                          0.0, 0.0, 0.0, 1.0);
+    let t4 = Matrix4::new(1.0, 0.0, 0.0, eye.x,
+                          0.0, 1.0, 0.0, eye.y,
+                          0.0, 0.0, 1.0, eye.z,
+                          0.0, 0.0, 0.0, 1.0);
 
     let stw = t4 * r3 * s2 * t1;
 
@@ -100,8 +100,8 @@ fn trace_pixel(ray: &Ray, objects: &Vec<Arc<Object>>, lights: &Vec<Arc<Light>>, 
             let shininess = material.get_shininess();
 
             let ac = kd.component_mul(ambient);
-            let mut dc = Vector3::<f32>::new(0.0, 0.0, 0.0);
-            let mut sc = Vector3::<f32>::new(0.0, 0.0, 0.0);
+            let mut dc = Vector3::new(0.0, 0.0, 0.0);
+            let mut sc = Vector3::new(0.0, 0.0, 0.0);
 
             let contact_point = ray.origin + (hit.intersect * (ray.point - ray.origin));
 
@@ -126,7 +126,7 @@ fn trace_pixel(ray: &Ray, objects: &Vec<Arc<Object>>, lights: &Vec<Arc<Light>>, 
             ac + dc + sc
         },
         None => {
-            Vector3::<f32>::new(0.0, 0.0, 0.0)
+            Vector3::new(0.0, 0.0, 0.0)
         }
     }
 }

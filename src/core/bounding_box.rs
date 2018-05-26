@@ -1,6 +1,6 @@
 use na::{Vector4, Matrix4};
 use core::Ray;
-use core::math;
+use core::util::math;
 use std::f32;
 
 pub struct BoundingBox {

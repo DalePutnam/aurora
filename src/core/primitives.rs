@@ -1,6 +1,6 @@
 use na::{Vector4, Vector3, Matrix4, dot};
 use core::{Ray, Hit};
-use core::math;
+use core::util::math;
 use core::traits::Primitive;
 use std::f32;
 

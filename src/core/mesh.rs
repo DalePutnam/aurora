@@ -1,6 +1,6 @@
 use core::traits::Primitive;
 use core::{Ray, Hit, BoundingBox};
-use core::math;
+use core::util::math;
 use std::io::BufReader;
 use std::io::prelude::*;
 use std::fs::File;

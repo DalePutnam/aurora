@@ -21,9 +21,7 @@ impl LuaMaterial {
 }
 
 impl UserData for LuaMaterial {
-    fn add_methods(_methods: &mut UserDataMethods<Self>) {
-
-    }
+    fn add_methods(_methods: &mut UserDataMethods<Self>) {}
 }
 
 pub fn lua_material_constructor(lua_diffuse: Value, lua_specular: Value, lua_shininess: Value) -> rlua::Result<LuaMaterial> {
