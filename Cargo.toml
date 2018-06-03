@@ -8,3 +8,4 @@ publish = false
 nalgebra = "0.14.1"
 rlua = "0.13.0"
 image = "0.19.0"
+num_cpus = "1.8.0"

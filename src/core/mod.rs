@@ -20,11 +20,14 @@ pub mod light;
 pub mod mesh;
 pub mod bounding_box;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use na::{Vector3, Vector4, Matrix4};
 use std::f32;
 use std::fs::File;
 use image::{ImageBuffer, Pixel, Rgb, ColorType, png};
+use num_cpus;
+use std::thread;
+use std::sync::mpsc;
 
 pub fn render(objects: Vec<Arc<Object>>, output_name: String, output_width: u32, output_height: u32,
               eye: Vector3<f32>, view: Vector3<f32>, up: Vector3<f32>, fov_y: f32, ambient: Vector3<f32>, lights: Vec<Arc<Light>>)
@@ -61,29 +64,82 @@ pub fn render(objects: Vec<Arc<Object>>, output_name: String, output_width: u32,
                           0.0, 0.0, 0.0, 1.0);
 
     let stw = t4 * r3 * s2 * t1;
-
-    let mut image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(output_width, output_height);
     let eye_4d = Vector4::new(eye.x, eye.y, eye.z, 1.0);
 
-    for x in 0..output_width {
-        for y in 0..output_height {
-            let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
-            let ray = Ray { point: pworld, origin: eye_4d, id: 0, thread_id: 0 };
+    let frame_sections = Arc::new(Mutex::new(divide_frame(output_width, output_height)));
+    let cpus = num_cpus::get();
 
-            let colour = trace_pixel(&ray, &objects, &lights, &ambient);
 
-            let r = (255.0 * colour.x.min(1.0)) as u8;
-            let g = (255.0 * colour.y.min(1.0)) as u8;
-            let b = (255.0 * colour.z.min(1.0)) as u8;
+    let lights = Arc::new(lights);
+    let objects = Arc::new(objects);
 
-            image.put_pixel(x, y, *Rgb::from_slice(&[r, g, b]));
+    let rx = {
+        let (tx, rx) = mpsc::channel();
+
+        for cpu in 0..cpus {
+            let frame_sections = Arc::clone(&frame_sections);
+            let tx = mpsc::Sender::clone(&tx);
+            let lights = Arc::clone(&lights);
+            let objects = Arc::clone(&objects);
+
+            thread::spawn(move || {
+                loop {
+                    let (start_x, start_y, width, height) = match frame_sections.lock() {
+                        Ok(mut sections) => {
+                            match sections.pop() {
+                                Some(section) => section,
+                                None => break,
+                            } 
+                        },
+                        Err(_) => {
+                            println!("Frame section lock is poisoned! Thread {} exiting.", cpu);
+                            break;
+                        }
+                    };
+
+                    for x in start_x..start_x + width {
+                        for y in start_y..start_y + height {
+                            let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
+                            let ray = Ray { point: pworld, origin: eye_4d, id: 0, thread_id: 0 };
+
+                            let colour = trace_pixel(&ray, &objects, &lights, &ambient);
+
+                            let r = (255.0 * colour.x.min(1.0)) as u8;
+                            let g = (255.0 * colour.y.min(1.0)) as u8;
+                            let b = (255.0 * colour.z.min(1.0)) as u8;
+
+                            if let Err(_) = tx.send((x, y, r, g, b)) {
+                                println!("Receiver closed unexpectedly! Thread {} exiting.", cpu);
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        rx
+    };
+
+    let mut image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(output_width, output_height);
+    let total_pixels = output_width * output_height;
+    let mut received_pixels = 0;
+
+    for (x, y, r, g, b) in rx {
+        image.put_pixel(x, y, *Rgb::from_slice(&[r, g, b]));
+        received_pixels += 1;
+
+        if received_pixels % 1000 == 0 {
+            print!("{:.0}% rendered\r", (received_pixels as f32 / total_pixels as f32) * 100.0);
         }
     }
+
+    println!("100% rendered");
 
     match File::create(&output_name) {
         Ok(file) => {
             let encoder = png::PNGEncoder::new(file);
-            match encoder.encode(&image.into_raw(), output_width, output_width, ColorType::RGB(8)) {
+            match encoder.encode(&image.into_raw(), output_width, output_height, ColorType::RGB(8)) {
                 Ok(_) => (),
                 Err(e) => println!("ERROR: Unable to encode image: {}", e),
             }
@@ -92,7 +148,7 @@ pub fn render(objects: Vec<Arc<Object>>, output_name: String, output_width: u32,
     }
 }
 
-fn trace_pixel(ray: &Ray, objects: &Vec<Arc<Object>>, lights: &Vec<Arc<Light>>, ambient: &Vector3<f32>) -> Vector3<f32> {
+fn trace_pixel(ray: &Ray, objects: &Arc<Vec<Arc<Object>>>, lights: &Arc<Vec<Arc<Light>>>, ambient: &Vector3<f32>) -> Vector3<f32> {
     match check_hit(ray, objects) {
         Some((hit, material)) => {
             let kd = material.get_diffuse();
@@ -105,7 +161,7 @@ fn trace_pixel(ray: &Ray, objects: &Vec<Arc<Object>>, lights: &Vec<Arc<Light>>, 
 
             let contact_point = ray.origin + (hit.intersect * (ray.point - ray.origin));
 
-            for light in lights {
+            for light in lights.iter() {
                 let shadow_ray = Ray { origin: contact_point, point: *light.get_position(), id: 0, thread_id: 0 };
 
                 if let Some((shadow_hit, _)) = check_hit(&shadow_ray, objects) {
@@ -131,11 +187,11 @@ fn trace_pixel(ray: &Ray, objects: &Vec<Arc<Object>>, lights: &Vec<Arc<Light>>, 
     }
 }
 
-fn check_hit(ray: &Ray, objects: &Vec<Arc<Object>>) -> Option<(Hit, Arc<Box<Material>>)> {
+fn check_hit(ray: &Ray, objects: &Arc<Vec<Arc<Object>>>) -> Option<(Hit, Arc<Box<Material>>)> {
     let mut min_intersect = f32::INFINITY;
     let mut final_hit: Option<(Hit, Arc<Box<Material>>)> = None;
     
-    for object in objects {
+    for object in objects.iter() {
         if let Some((hit, material)) = object.check_hit(ray) {
             if hit.intersect < min_intersect {
                 min_intersect = hit.intersect;
@@ -176,3 +232,41 @@ fn attenuate_light(distance: f32, light: &Arc<Light>) -> Vector3<f32> {
     let c = light.get_falloff();
     light.get_colour() / (c.x + (c.y * distance) + (c.z * distance * distance))
 }
+
+const BLOCK_SIZE: u32 = 64;
+fn divide_frame(width: u32, height: u32) -> Vec<(u32, u32, u32, u32)> {
+    let cols = width / BLOCK_SIZE;
+    let rows = height / BLOCK_SIZE;
+    let col_remainder = width % BLOCK_SIZE;
+    let row_remainder = height % BLOCK_SIZE;
+
+    let mut slices = Vec::new();
+    for y in 0..rows {
+        for x in 0..cols {
+            slices.push((x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE));
+        }
+    }
+
+    if col_remainder > 0 {
+        // Right edge remainder
+        for y in 0..rows {
+            slices.push((cols * BLOCK_SIZE, y * BLOCK_SIZE, col_remainder, BLOCK_SIZE));
+        }
+    }
+
+    if row_remainder > 0 {
+        // Bottom edge remainder
+        for x in 0..cols {
+            slices.push((x * BLOCK_SIZE, rows * BLOCK_SIZE, BLOCK_SIZE, row_remainder));
+        }
+    }
+
+    if col_remainder > 0 && row_remainder > 0 {
+        // Bottom right corner
+        slices.push((cols * BLOCK_SIZE, rows * BLOCK_SIZE, col_remainder, row_remainder));
+    }
+
+    slices
+}
+
+

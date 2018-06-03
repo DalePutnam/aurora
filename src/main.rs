@@ -1,6 +1,7 @@
 extern crate rlua;
 extern crate image;
 extern crate nalgebra as na;
+extern crate num_cpus;
 
 mod core;
 mod scene_builder;
