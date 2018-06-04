@@ -16,8 +16,8 @@ impl LuaLight {
         }
     }
 
-    pub fn get_internal_light(&self) -> Arc<Light> {
-        Arc::clone(&self.light)
+    pub fn get_internal_light(&self) -> Light {
+        Light::clone(&self.light)
     }
 }
 

@@ -1,5 +1,6 @@
 use na::{Vector4, Vector3};
 
+#[derive(Clone)]
 pub struct Light {
     position: Vector4<f32>,
     colour: Vector3<f32>,

@@ -12,11 +12,11 @@ pub struct LuaSceneNode {
 }
 
 impl LuaSceneNode {
-    fn new(scene_node: SceneNode) -> Self {
+    pub fn new(scene_node: SceneNode) -> Self {
         LuaSceneNode { node: Arc::new(RwLock::new(scene_node)) }
     }
 
-    pub (crate) fn convert_to_object_list(&self) -> Vec<Arc<Object>> {
+    pub fn convert_to_object_list(&self) -> Vec<Object> {
         let list = RefCell::new(Vec::new());
         let mut id = 0;
 
@@ -300,15 +300,13 @@ impl SceneNode {
         }
     }
 
-    fn convert_to_object_list(&self, list: &RefCell<Vec<Arc<Object>>>, transform: &Matrix4<f32>, current_id: &mut u64) {
+    fn convert_to_object_list(&self, list: &RefCell<Vec<Object>>, transform: &Matrix4<f32>, current_id: &mut u64) {
         let new_transform = transform * self.transform;
 
-        if self.primitive.is_some() && self.material.is_some() {
-            let primitive = Arc::clone(self.primitive.as_ref().unwrap());
-            let material = Arc::clone(self.material.as_ref().unwrap());
-            let mut list_mut = list.borrow_mut();
-
-            list_mut.push(Arc::new(Object::new(*current_id, &new_transform, &primitive, &material)));
+        if let Some(ref primitive) = self.primitive {
+            if let Some(ref material) = self.material {
+                list.borrow_mut().push(Object::new(*current_id, &new_transform, &primitive, &material));
+            }
         }
 
         let mut id = *current_id + 1;
