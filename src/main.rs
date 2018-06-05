@@ -1,4 +1,5 @@
 extern crate rlua;
+extern crate failure;
 extern crate image;
 extern crate nalgebra as na;
 extern crate num_cpus;

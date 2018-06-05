@@ -1,21 +1,18 @@
 use std::cell::RefCell;
 use std::sync::{RwLock, Arc};
 use na::{Matrix4, Vector3, Unit};
-use rlua;
-use rlua::{UserData, UserDataMethods, Value};
+use rlua::{self, UserData, UserDataMethods, Value, FromLua, Lua};
 use core::traits::Primitive;
 use core::{NonhierBox, NonhierSphere, Sphere, Cube, Mesh, Material, Object};
-use scene_builder::lua_material::LuaMaterial;
+use scene_builder::{LuaMaterial, LuaVector3};
 
+/// A Lua wrapper for the SceneNode class
 pub struct LuaSceneNode {
     node: Arc<RwLock<SceneNode>>,
 }
 
 impl LuaSceneNode {
-    pub fn new(scene_node: SceneNode) -> Self {
-        LuaSceneNode { node: Arc::new(RwLock::new(scene_node)) }
-    }
-
+    /// Creates a vector of Objects from the scene tree represented by this LuaSceneNode
     pub fn convert_to_object_list(&self) -> Vec<Object> {
         let list = RefCell::new(Vec::new());
         let mut id = 0;
@@ -29,11 +26,15 @@ impl LuaSceneNode {
 
         list.into_inner()
     }
+
+    fn new(scene_node: SceneNode) -> Self {
+        LuaSceneNode { node: Arc::new(RwLock::new(scene_node)) }
+    }
 }
 
 impl UserData for LuaSceneNode {
     fn add_methods(methods: &mut UserDataMethods<Self>) {
-        methods.add_method_mut("rotate", |_, lua_node, (lua_axis, lua_angle)| {
+        methods.add_method_mut("rotate", |lua, lua_node, (lua_axis, lua_angle)| {
             let axis = match lua_axis {
                 Value::String(string) => {
                     match string.to_str() {
@@ -44,11 +45,7 @@ impl UserData for LuaSceneNode {
                 _ => panic!("Failed to rotate"),
             };
 
-            let angle = match lua_angle {
-                Value::Number(number) => number as f32,
-                Value::Integer(integer) => integer as f32,
-                _ => panic!("Failed to rotate"),
-            };
+            let angle = f32::from_lua(lua_angle, lua)?;
 
             match lua_node.node.write() {
                 Ok(mut scene_node) => scene_node.rotate(axis, angle),
@@ -58,25 +55,10 @@ impl UserData for LuaSceneNode {
             Ok(())
         });
 
-        methods.add_method("scale", |_, lua_node, (lua_x, lua_y, lua_z)| {
-            let x = match lua_x {
-                Value::Number(number) => number as f32,
-                Value::Integer(integer) => integer as f32,
-                _ => panic!("Failed to scale"),
-            };
-
-            let y = match lua_y {
-                Value::Number(number) => number as f32,
-                Value::Integer(integer) => integer as f32,
-                _ => panic!("Failed to scale"),
-            };
-
-            let z = match lua_z {
-                Value::Number(number) => number as f32,
-                Value::Integer(integer) => integer as f32,
-                _ => panic!("Failed to scale"),
-            };
-
+        methods.add_method("scale", |lua, lua_node, (lua_x, lua_y, lua_z)| {
+            let x = f32::from_lua(lua_x, lua)?;
+            let y = f32::from_lua(lua_y, lua)?;
+            let z = f32::from_lua(lua_z, lua)?;
             let amount = Vector3::new(x, y, z);
 
             match lua_node.node.write() {
@@ -87,26 +69,12 @@ impl UserData for LuaSceneNode {
             Ok(())
         });
 
-        methods.add_method("translate", |_, lua_node, (lua_x, lua_y, lua_z)| {
-            let x = match lua_x {
-                Value::Number(number) => number as f32,
-                Value::Integer(integer) => integer as f32,
-                _ => panic!("Failed to scale"),
-            };
-
-            let y = match lua_y {
-                Value::Number(number) => number as f32,
-                Value::Integer(integer) => integer as f32,
-                _ => panic!("Failed to scale"),
-            };
-
-            let z = match lua_z {
-                Value::Number(number) => number as f32,
-                Value::Integer(integer) => integer as f32,
-                _ => panic!("Failed to scale"),
-            };
-
+        methods.add_method("translate", |lua, lua_node, (lua_x, lua_y, lua_z)| {
+            let x = f32::from_lua(lua_x, lua)?;
+            let y = f32::from_lua(lua_y, lua)?;
+            let z = f32::from_lua(lua_z, lua)?;
             let amount = Vector3::new(x, y, z);
+
             match lua_node.node.write() {
                 Ok(mut scene_node) => scene_node.translate(&amount),
                 Err(_) => panic!("SceneNode lock is poisoned!"),
@@ -140,7 +108,7 @@ impl UserData for LuaSceneNode {
                     match user_data.borrow::<LuaMaterial>() {
                         Ok(material) => {
                             match lua_node.node.write() {
-                                Ok(mut scene_node) => scene_node.set_material(material.get_internal_material()),
+                                Ok(mut scene_node) => scene_node.set_material(material.get_inner()),
                                 Err(_) => panic!("SceneNode lock is poisoned"),
                             };
 
@@ -155,41 +123,15 @@ impl UserData for LuaSceneNode {
     }
 }
 
-pub fn lua_node_constructor(lua_name: Value) -> rlua::Result<LuaSceneNode> {
-    let name = match lua_name {
-        Value::String(string) => string.to_str().unwrap().to_string(),
-        _ => panic!("Failed to create node"),
-    };
-
+pub fn lua_node_constructor(lua: &Lua, lua_name: Value) -> rlua::Result<LuaSceneNode> {
+    let name = String::from_lua(lua_name, lua)?;
     Ok(LuaSceneNode::new(SceneNode::new(&name)))
 }
 
-pub fn lua_nh_sphere_constructor(lua_name: Value, lua_position: Value, lua_radius: Value) -> rlua::Result<LuaSceneNode> {
-    let name = match lua_name {
-        Value::String(string) => string.to_str().unwrap().to_string(),
-        _ => panic!("Failed to create nh_sphere"),
-    };
-
-    let position = match lua_position {
-        Value::Table(table) => {
-            if table.len()? != 3 {
-                panic!("Invalid position given to nh_sphere constructor")
-            }
-
-            let x: f32 = table.get(1).unwrap();
-            let y: f32 = table.get(2).unwrap();
-            let z: f32 = table.get(3).unwrap();
-
-            Vector3::<f32>::new(x, y, z)
-        },
-        _ => panic!("Failed to create nh_sphere")
-    };
-
-    let radius = match lua_radius {
-        Value::Number(number) => number as f32,
-        Value::Integer(integer) => integer as f32,
-        _ => panic!("Failed to create nh_sphere"),
-    };
+pub fn lua_nh_sphere_constructor(lua: &Lua, lua_name: Value, lua_position: Value, lua_radius: Value) -> rlua::Result<LuaSceneNode> {
+    let name = String::from_lua(lua_name, lua)?;
+    let position = LuaVector3::from_lua(lua_position, lua)?.get_inner();
+    let radius = f32::from_lua(lua_radius, lua)?;
 
     let mut node = SceneNode::new(&name);
     let nh_sphere: Arc<Box<Primitive>> = Arc::new(Box::new(NonhierSphere::new(position, radius)));
@@ -199,32 +141,10 @@ pub fn lua_nh_sphere_constructor(lua_name: Value, lua_position: Value, lua_radiu
     Ok(LuaSceneNode::new(node))
 }
 
-pub fn lua_nh_box_constructor(lua_name: Value, lua_position: Value, lua_size: Value) -> rlua::Result<LuaSceneNode> {
-    let name = match lua_name {
-        Value::String(string) => string.to_str().unwrap().to_string(),
-        _ => panic!("Failed to create nh_box"),
-    };
-
-    let position = match lua_position {
-        Value::Table(table) => {
-            if table.len().unwrap() != 3 {
-                panic!("Invalid position given to nh_box constructor")
-            }
-
-            let x: f32 = table.get(1).unwrap();
-            let y: f32 = table.get(2).unwrap();
-            let z: f32 = table.get(3).unwrap();
-
-            Vector3::<f32>::new(x, y, z)
-        },
-        _ => panic!("Failed to create nh_box")
-    };
-
-    let size = match lua_size {
-        Value::Number(number) => number as f32,
-        Value::Integer(integer) => integer as f32,
-        _ => panic!("Failed to create nh_box"),
-    };
+pub fn lua_nh_box_constructor(lua: &Lua, lua_name: Value, lua_position: Value, lua_size: Value) -> rlua::Result<LuaSceneNode> {
+    let name = String::from_lua(lua_name, lua)?;
+    let position = LuaVector3::from_lua(lua_position, lua)?.get_inner();
+    let size = f32::from_lua(lua_size, lua)?;
 
     let mut node = SceneNode::new(&name);
     let nh_box: Arc<Box<Primitive>> = Arc::new(Box::new(NonhierBox::new(position, size)));
@@ -234,11 +154,8 @@ pub fn lua_nh_box_constructor(lua_name: Value, lua_position: Value, lua_size: Va
     Ok(LuaSceneNode::new(node))    
 }
 
-pub fn lua_sphere_constructor(lua_name: Value) -> rlua::Result<LuaSceneNode> {
-    let name = match lua_name {
-        Value::String(string) => string.to_str().unwrap().to_string(),
-        _ => return Err(rlua::Error::RuntimeError("Failed to create sphere".to_string())),
-    };
+pub fn lua_sphere_constructor(lua: &Lua, lua_name: Value) -> rlua::Result<LuaSceneNode> {
+    let name = String::from_lua(lua_name, lua)?;
 
     let mut node = SceneNode::new(&name);
     let sphere: Arc<Box<Primitive>> = Arc::new(Box::new(Sphere::new()));
@@ -248,11 +165,8 @@ pub fn lua_sphere_constructor(lua_name: Value) -> rlua::Result<LuaSceneNode> {
     Ok(LuaSceneNode::new(node))
 }
 
-pub fn lua_cube_constructor(lua_name: Value) -> rlua::Result<LuaSceneNode> {
-    let name = match lua_name {
-        Value::String(string) => string.to_str().unwrap().to_string(),
-        _ => return Err(rlua::Error::RuntimeError("Failed to create cube".to_string())),
-    };
+pub fn lua_cube_constructor(lua: &Lua, lua_name: Value) -> rlua::Result<LuaSceneNode> {
+    let name = String::from_lua(lua_name, lua)?;
 
     let mut node = SceneNode::new(&name);
     let cube: Arc<Box<Primitive>> = Arc::new(Box::new(Cube::new()));
@@ -262,16 +176,9 @@ pub fn lua_cube_constructor(lua_name: Value) -> rlua::Result<LuaSceneNode> {
     Ok(LuaSceneNode::new(node))
 }
 
-pub fn lua_mesh_constructor(lua_name: Value, lua_file_name: Value) -> rlua::Result<LuaSceneNode> {
-    let name = match lua_name {
-        Value::String(string) => string.to_str().unwrap().to_string(),
-        _ => return Err(rlua::Error::RuntimeError("Failed to create mesh".to_string())),
-    };
-
-    let file_name = match lua_file_name {
-        Value::String(string) => string.to_str().unwrap().to_string(),
-        _ => return Err(rlua::Error::RuntimeError("Failed to create mesh".to_string())),
-    };
+pub fn lua_mesh_constructor(lua: &Lua, lua_name: Value, lua_file_name: Value) -> rlua::Result<LuaSceneNode> {
+    let name = String::from_lua(lua_name, lua)?;
+    let file_name = String::from_lua(lua_file_name, lua)?;
 
     let mut node = SceneNode::new(&name);
     let mesh: Arc<Box<Primitive>> = Arc::new(Box::new(Mesh::new(&file_name)));

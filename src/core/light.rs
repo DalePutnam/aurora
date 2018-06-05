@@ -24,7 +24,7 @@ impl Light {
         &self.colour
     }
 
-    pub fn get_falloff(& self) -> &Vector3<f32> {
+    pub fn get_falloff(&self) -> &Vector3<f32> {
         &self.falloff
     }
 }

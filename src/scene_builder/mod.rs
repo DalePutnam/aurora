@@ -1,7 +1,9 @@
 pub use self::lua_scene_node::LuaSceneNode;
 pub use self::lua_material::LuaMaterial;
 pub use self::lua_light::LuaLight;
+pub use self::lua_vector::LuaVector3;
 
+mod lua_vector;
 mod lua_scene_node;
 mod lua_material;
 mod lua_light;
@@ -9,10 +11,9 @@ mod lua_light;
 use std::io::Read;
 use std::error::Error;
 use std::fs::File;
-use rlua::{Lua, Value};
-use rlua;
-use na::Vector3;
+use rlua::{self, Lua, Value, FromLua};
 use core;
+use failure::Fail;
 
 pub struct SceneBuilder {
     lua: Lua,
@@ -42,7 +43,13 @@ impl SceneBuilder {
 
         match self.lua.exec::<()>(&contents, Some(script_path)) {
             Ok(_) => Ok(()),
-            Err(e) => Err(format!("Lua execution failed: {}", e)),
+            Err(e) => {
+                if let Some(cause) = e.cause() {
+                    Err(format!("Lua execution failed\n{}\n{}", e, cause))
+                } else {
+                    Err(format!("Lua execution failed: {}", e))
+                }
+            },
         }
     }
 }
@@ -52,56 +59,56 @@ fn initialize_environment(lua: &mut Lua) {
     let gr = lua.create_table().expect("Failed to create gr table");
 
     // Constructor for a SceneNode with no geometry
-    let scene_node_ctor = lua.create_function(|_, lua_name: Value| {
-        lua_scene_node::lua_node_constructor(lua_name)
+    let scene_node_ctor = lua.create_function(|lua, lua_name: Value| {
+        lua_scene_node::lua_node_constructor(lua, lua_name)
     })
     .expect("Failed to create node constructor");
 
     // NonhierSphere Constructor
-    let nh_sphere_ctor = lua.create_function(|_, (lua_name, lua_position, lua_radius)| {
-        lua_scene_node::lua_nh_sphere_constructor(lua_name, lua_position, lua_radius)
+    let nh_sphere_ctor = lua.create_function(|lua, (lua_name, lua_position, lua_radius)| {
+        lua_scene_node::lua_nh_sphere_constructor(lua, lua_name, lua_position, lua_radius)
     })
     .expect("Failed to create nh_sphere constructor");
 
     // NonhierBox Constructor
-    let nh_box_ctor = lua.create_function(|_, (lua_name, lua_position, lua_size)| {
-        lua_scene_node::lua_nh_box_constructor(lua_name, lua_position, lua_size)
+    let nh_box_ctor = lua.create_function(|lua, (lua_name, lua_position, lua_size)| {
+        lua_scene_node::lua_nh_box_constructor(lua, lua_name, lua_position, lua_size)
     })
     .expect("Failed to create nh_box constructor");
 
     // Sphere Constructor
-    let sphere_ctor = lua.create_function(|_, lua_name| {
-        lua_scene_node::lua_sphere_constructor(lua_name)
+    let sphere_ctor = lua.create_function(|lua, lua_name| {
+        lua_scene_node::lua_sphere_constructor(lua, lua_name)
     })
     .expect("Failed to create sphere constructor");
 
     // Cube Constructor
-    let cube_ctor = lua.create_function(|_, lua_name| {
-        lua_scene_node::lua_cube_constructor(lua_name)
+    let cube_ctor = lua.create_function(|lua, lua_name| {
+        lua_scene_node::lua_cube_constructor(lua, lua_name)
     })
     .expect("Failed to create cube constructor");
 
     // Mesh Constructor
-    let mesh_ctor = lua.create_function(|_, (lua_name, lua_file_name)| {
-        lua_scene_node::lua_mesh_constructor(lua_name, lua_file_name)
+    let mesh_ctor = lua.create_function(|lua, (lua_name, lua_file_name)| {
+        lua_scene_node::lua_mesh_constructor(lua, lua_name, lua_file_name)
     })
     .expect("Failed to create mesh constructor");
 
     // Material Constructor
-    let material_ctor = lua.create_function(|_, (lua_diffuse, lua_specular, lua_shininess)| {
-        lua_material::lua_material_constructor(lua_diffuse, lua_specular, lua_shininess)
+    let material_ctor = lua.create_function(|lua, (lua_diffuse, lua_specular, lua_shininess)| {
+        lua_material::lua_material_constructor(lua, lua_diffuse, lua_specular, lua_shininess)
     })
     .expect("Failed to create material constructor");
 
     // Light Constructor
-    let light_ctor = lua.create_function(|_, (lua_position, lua_colour, lua_falloff)| {
-        lua_light::lua_light_constructor(lua_position, lua_colour, lua_falloff)
+    let light_ctor = lua.create_function(|lua, (lua_position, lua_colour, lua_falloff)| {
+        lua_light::lua_light_constructor(lua, lua_position, lua_colour, lua_falloff)
     })
     .expect("Failed to create light constructor");
 
     // Render function
-    let render = lua.create_function(|_, (lua_scene_root, lua_output, lua_width, lua_height, lua_eye, lua_view, lua_up, lua_fov_y, lua_ambient, lua_lights)| {
-        lua_render(lua_scene_root, lua_output, lua_width, lua_height, lua_eye, lua_view, lua_up, lua_fov_y, lua_ambient, lua_lights)
+    let render = lua.create_function(|lua, (lua_scene_root, lua_output, lua_width, lua_height, lua_eye, lua_view, lua_up, lua_fov_y, lua_ambient, lua_lights)| {
+        lua_render(lua, lua_scene_root, lua_output, lua_width, lua_height, lua_eye, lua_view, lua_up, lua_fov_y, lua_ambient, lua_lights)
     })
     .expect("Failed to create render function");
 
@@ -118,7 +125,7 @@ fn initialize_environment(lua: &mut Lua) {
     globals.set("gr", gr).expect("Failed to add gr to globals");
 }
 
-fn lua_render(lua_scene_root: Value, lua_output_name: Value, lua_width: Value, lua_height: Value,
+fn lua_render(lua: &Lua, lua_scene_root: Value, lua_output_name: Value, lua_width: Value, lua_height: Value,
             lua_eye: Value, lua_view: Value, lua_up: Value, lua_fov_y: Value, lua_ambient: Value, lua_lights: Value) -> rlua::Result<()> {
 
     let objects = match lua_scene_root {
@@ -133,88 +140,14 @@ fn lua_render(lua_scene_root: Value, lua_output_name: Value, lua_width: Value, l
         _ => return Err(rlua::Error::RuntimeError("gr.render expected a scene node as its first argument".to_string())),
     };
 
-    let output_name = match lua_output_name {
-        Value::String(string) => string.to_str().unwrap().to_string(),
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected a string as its second argument".to_string())),
-    };
-
-    let width = match lua_width {
-        Value::Integer(i) => i as u32,
-        Value::Number(n) => n as u32,
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected a number as its third argument".to_string())),
-    };
-
-    let height = match lua_height {
-        Value::Integer(i) => i as u32,
-        Value::Number(n) => n as u32,
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected a number as its fourth argument".to_string())),
-    };
-
-    let eye = match lua_eye {
-        Value::Table(table) => {
-            if table.len()? != 3 {
-                return Err(rlua::Error::RuntimeError("gr.render expected an array with 3 elements as its fifth argument".to_string()));
-            }
-
-            let x: f32 = table.get(1)?;
-            let y: f32 = table.get(2)?;
-            let z: f32 = table.get(3)?;
-
-            Vector3::<f32>::new(x, y, z)
-        },
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected an array with 3 elements as its fifth argument".to_string())),
-    };
-
-    let view = match lua_view {
-        Value::Table(table) => {
-            if table.len()? != 3 {
-                return Err(rlua::Error::RuntimeError("gr.render expected an array with 3 elements as its sixth argument".to_string()));
-            }
-
-            let x: f32 = table.get(1)?;
-            let y: f32 = table.get(2)?;
-            let z: f32 = table.get(3)?;
-
-            Vector3::<f32>::new(x, y, z)
-        },
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected an array with 3 elements as its sixth argument".to_string())),
-    };
-
-    let up = match lua_up {
-        Value::Table(table) => {
-            if table.len()? != 3 {
-                return Err(rlua::Error::RuntimeError("gr.render expected an array with 3 elements as its seventh argument".to_string()));
-            }
-
-            let x: f32 = table.get(1)?;
-            let y: f32 = table.get(2)?;
-            let z: f32 = table.get(3)?;
-
-            Vector3::<f32>::new(x, y, z)
-        },
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected an array with 3 elements as its seventh argument".to_string())),
-    };
-
-    let fov_y = match lua_fov_y {
-        Value::Integer(i) => i as f32,
-        Value::Number(n) => n as f32,
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected a number as its eighth argument".to_string())),
-    };
-
-    let ambient = match lua_ambient {
-        Value::Table(table) => {
-            if table.len()? != 3 {
-                return Err(rlua::Error::RuntimeError("gr.render expected an array with 3 elements as its ninth argument".to_string()));
-            }
-
-            let x: f32 = table.get(1)?;
-            let y: f32 = table.get(2)?;
-            let z: f32 = table.get(3)?;
-
-            Vector3::<f32>::new(x, y, z)
-        },
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected an array with 3 elements as its ninth argument".to_string())),
-    };
+    let output_name = String::from_lua(lua_output_name, lua)?;
+    let width = u32::from_lua(lua_width, lua)?;
+    let height = u32::from_lua(lua_height, lua)?;
+    let eye = LuaVector3::from_lua(lua_eye, lua)?.get_inner();
+    let view = LuaVector3::from_lua(lua_view, lua)?.get_inner();
+    let up = LuaVector3::from_lua(lua_up, lua)?.get_inner();
+    let fov_y = f32::from_lua(lua_fov_y, lua)?;
+    let ambient = LuaVector3::from_lua(lua_ambient, lua)?.get_inner();
 
     let lights = match lua_lights {
         Value::Table(table) => {

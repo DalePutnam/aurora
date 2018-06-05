@@ -20,15 +20,16 @@ pub mod light;
 pub mod mesh;
 pub mod bounding_box;
 
-use std::sync::{Arc, Mutex};
-use na::{Vector3, Vector4, Matrix4};
 use std::f32;
-use std::fs::File;
-use image::{ImageBuffer, Pixel, Rgb, ColorType, png};
-use num_cpus;
 use std::thread;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
+use std::fs::File;
+use na::{Vector3, Vector4, Matrix4};
+use image::{ImageBuffer, Pixel, Rgb, ColorType, png};
+use num_cpus;
+
 
 pub fn render(objects: Vec<Object>, output_name: String, output_width: u32, output_height: u32,
               eye: Vector3<f32>, view: Vector3<f32>, up: Vector3<f32>, fov_y: f32, ambient: Vector3<f32>, lights: Vec<Light>)
