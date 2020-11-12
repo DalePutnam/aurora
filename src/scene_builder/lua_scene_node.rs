@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::sync::{RwLock, Arc};
 use na::{Matrix4, Vector3, Unit};
-use rlua::{self, UserData, UserDataMethods, Value, FromLua, Lua};
+use rlua::{self, UserData, UserDataMethods, Value, FromLua, Context};
 use core::traits::Primitive;
 use core::{NonhierBox, NonhierSphere, Sphere, Cube, Mesh, Material, Object};
 use scene_builder::{LuaMaterial, LuaVector3};
@@ -33,7 +33,7 @@ impl LuaSceneNode {
 }
 
 impl UserData for LuaSceneNode {
-    fn add_methods(methods: &mut UserDataMethods<Self>) {
+    fn add_methods<'lua, T: UserDataMethods<'lua, Self>>(methods: &mut T) {
         methods.add_method_mut("rotate", |lua, lua_node, (lua_axis, lua_angle)| {
             let axis = match lua_axis {
                 Value::String(string) => {
@@ -123,12 +123,12 @@ impl UserData for LuaSceneNode {
     }
 }
 
-pub fn lua_node_constructor(lua: &Lua, lua_name: Value) -> rlua::Result<LuaSceneNode> {
+pub fn lua_node_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>) -> rlua::Result<LuaSceneNode> {
     let name = String::from_lua(lua_name, lua)?;
     Ok(LuaSceneNode::new(SceneNode::new(&name)))
 }
 
-pub fn lua_nh_sphere_constructor(lua: &Lua, lua_name: Value, lua_position: Value, lua_radius: Value) -> rlua::Result<LuaSceneNode> {
+pub fn lua_nh_sphere_constructor<'lua>(lua:  Context<'lua>, lua_name: Value<'lua>, lua_position: Value<'lua>, lua_radius: Value<'lua>) -> rlua::Result<LuaSceneNode> {
     let name = String::from_lua(lua_name, lua)?;
     let position = LuaVector3::from_lua(lua_position, lua)?.get_inner();
     let radius = f32::from_lua(lua_radius, lua)?;
@@ -141,7 +141,7 @@ pub fn lua_nh_sphere_constructor(lua: &Lua, lua_name: Value, lua_position: Value
     Ok(LuaSceneNode::new(node))
 }
 
-pub fn lua_nh_box_constructor(lua: &Lua, lua_name: Value, lua_position: Value, lua_size: Value) -> rlua::Result<LuaSceneNode> {
+pub fn lua_nh_box_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>, lua_position: Value<'lua>, lua_size: Value<'lua>) -> rlua::Result<LuaSceneNode> {
     let name = String::from_lua(lua_name, lua)?;
     let position = LuaVector3::from_lua(lua_position, lua)?.get_inner();
     let size = f32::from_lua(lua_size, lua)?;
@@ -154,7 +154,7 @@ pub fn lua_nh_box_constructor(lua: &Lua, lua_name: Value, lua_position: Value, l
     Ok(LuaSceneNode::new(node))    
 }
 
-pub fn lua_sphere_constructor(lua: &Lua, lua_name: Value) -> rlua::Result<LuaSceneNode> {
+pub fn lua_sphere_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>) -> rlua::Result<LuaSceneNode> {
     let name = String::from_lua(lua_name, lua)?;
 
     let mut node = SceneNode::new(&name);
@@ -165,7 +165,7 @@ pub fn lua_sphere_constructor(lua: &Lua, lua_name: Value) -> rlua::Result<LuaSce
     Ok(LuaSceneNode::new(node))
 }
 
-pub fn lua_cube_constructor(lua: &Lua, lua_name: Value) -> rlua::Result<LuaSceneNode> {
+pub fn lua_cube_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>) -> rlua::Result<LuaSceneNode> {
     let name = String::from_lua(lua_name, lua)?;
 
     let mut node = SceneNode::new(&name);
@@ -176,7 +176,7 @@ pub fn lua_cube_constructor(lua: &Lua, lua_name: Value) -> rlua::Result<LuaScene
     Ok(LuaSceneNode::new(node))
 }
 
-pub fn lua_mesh_constructor(lua: &Lua, lua_name: Value, lua_file_name: Value) -> rlua::Result<LuaSceneNode> {
+pub fn lua_mesh_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>, lua_file_name: Value<'lua>) -> rlua::Result<LuaSceneNode> {
     let name = String::from_lua(lua_name, lua)?;
     let file_name = String::from_lua(lua_file_name, lua)?;
 

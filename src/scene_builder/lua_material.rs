@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use core::Material;
-use rlua::{self, UserData, UserDataMethods, Value, FromLua, Lua};
+use rlua::{self, UserData, UserDataMethods, Value, FromLua, Context};
 use scene_builder::LuaVector3;
 
 pub struct LuaMaterial {
@@ -20,10 +20,10 @@ impl LuaMaterial {
 }
 
 impl UserData for LuaMaterial {
-    fn add_methods(_methods: &mut UserDataMethods<Self>) {}
+    fn add_methods<'lua, T: UserDataMethods<'lua, Self>>(_methods: &mut T) {}
 }
 
-pub fn lua_material_constructor(lua: &Lua, lua_diffuse: Value, lua_specular: Value, lua_shininess: Value) -> rlua::Result<LuaMaterial> {
+pub fn lua_material_constructor<'lua>(lua: Context<'lua>, lua_diffuse: Value<'lua>, lua_specular: Value<'lua>, lua_shininess: Value<'lua>) -> rlua::Result<LuaMaterial> {
     let diffuse = LuaVector3::from_lua(lua_diffuse, lua)?.get_inner();
     let specular = LuaVector3::from_lua(lua_specular, lua)?.get_inner();
     let shininess = f32::from_lua(lua_shininess, lua)?;

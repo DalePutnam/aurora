@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use core::Light;
-use rlua::{self, UserData, UserDataMethods, Value, Lua, FromLua};
+use rlua::{self, UserData, UserDataMethods, Value, FromLua, Context};
 use scene_builder::LuaVector3;
 
 #[derive(Clone)]
@@ -21,10 +21,10 @@ impl LuaLight {
 }
 
 impl UserData for LuaLight {
-    fn add_methods(_methods: &mut UserDataMethods<Self>) {}
+    fn add_methods<'lua, T: UserDataMethods<'lua, Self>>(_methods: &mut T) {}
 }
 
-pub fn lua_light_constructor(lua: &Lua, lua_position: Value, lua_colour: Value, lua_falloff: Value) -> rlua::Result<LuaLight> {
+pub fn lua_light_constructor<'lua>(lua: Context<'lua>, lua_position: Value<'lua>, lua_colour: Value<'lua>, lua_falloff: Value<'lua>) -> rlua::Result<LuaLight> {
     let position = LuaVector3::from_lua(lua_position, lua)?;
     let colour = LuaVector3::from_lua(lua_colour, lua)?;
     let falloff = LuaVector3::from_lua(lua_falloff, lua)?;

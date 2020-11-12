@@ -1,4 +1,4 @@
-use na::{Vector4, Vector3, Matrix4, dot};
+use na::{Vector4, Vector3, Matrix4};
 use core::{Ray, Hit};
 use core::util::math;
 use core::traits::Primitive;
@@ -26,9 +26,9 @@ impl Primitive for NonhierSphere {
         let po = point - origin;
         let oc = origin - self.position;
 
-        let a = dot(&po, &po);
-        let b = dot(&po, &oc) * 2.0;
-        let c = dot(&oc, &oc) - (self.radius * self.radius);
+        let a = po.dot(&po);
+        let b = po.dot(&oc) * 2.0;
+        let c = oc.dot(&oc) - (self.radius * self.radius);
 
         match math::quadratic_roots(a, b, c) {
             math::QuadRoots::Zero | math::QuadRoots::One(_) => None,
@@ -218,9 +218,9 @@ impl Primitive for Sphere {
         let po = point - origin;
         let oc = origin - Vector4::new(0.0, 0.0, 0.0, 1.0);
 
-        let a = dot(&po, &po);
-        let b = dot(&po, &oc) * 2.0;
-        let c = dot(&oc, &oc) - 1.0;
+        let a = po.dot(&po);
+        let b = po.dot(&oc) * 2.0;
+        let c = oc.dot(&oc) - 1.0;
 
         match math::quadratic_roots(a, b, c) {
             math::QuadRoots::Zero | math::QuadRoots::One(_) => None,

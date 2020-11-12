@@ -1,4 +1,4 @@
-use rlua::{Lua, FromLua, Result, Error, Value};
+use rlua::{Context, FromLua, Result, Error, Value};
 use std::fmt;
 use na::Vector3;
 
@@ -25,7 +25,7 @@ impl<T> LuaVector3<T>
 impl<'lua, T> FromLua<'lua> for LuaVector3<T>
     where T: Copy + PartialEq + fmt::Debug + FromLua<'lua>
 {
-    fn from_lua(lua_value: Value<'lua>, _lua: &'lua Lua) -> Result<Self> {
+    fn from_lua(lua_value: Value<'lua>, _lua: Context<'lua>) -> Result<Self> {
         match lua_value {
             Value::Table(table) => {
                 let table_length = table.len()?;
