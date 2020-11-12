@@ -6,12 +6,12 @@ use core::{Material, Ray, Hit};
 pub struct Object {
     _id: u64,
     transform: Matrix4<f32>,
-    primitive: Arc<Box<Primitive>>,
+    primitive: Arc<Box<dyn Primitive>>,
     material: Arc<Box<Material>>,
 }
 
 impl Object {
-    pub fn new(id: u64, transform: &Matrix4<f32>, primitive: &Arc<Box<Primitive>>, material: &Arc<Box<Material>>) -> Self {
+    pub fn new(id: u64, transform: &Matrix4<f32>, primitive: &Arc<Box<dyn Primitive>>, material: &Arc<Box<Material>>) -> Self {
         Object {
             _id: id,
             transform: transform.try_inverse().unwrap(), // We need the world to model matrix here

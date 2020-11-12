@@ -131,7 +131,7 @@ impl Primitive for NonhierBox {
                 _ => panic!("This should never happen"),
             };
 
-            let mut nn = math::cross_4d(&(p1 - p0), &(p2 - p0));
+            let nn = math::cross_4d(&(p1 - p0), &(p2 - p0));
 
             let la = (origin - p0).dot(&nn);
             let lb = (point - p0).dot(&nn);
@@ -148,7 +148,7 @@ impl Primitive for NonhierBox {
                         let diff_y = pt.y - p0.y;
                         if diff_x <= size && diff_x >= 0.0 && diff_y <= size && diff_y >= 0.0 {
                             let mut u = diff_x / size;
-                            let mut v = diff_y / size;
+                            let v = diff_y / size;
 
                             if i == 1 {
                                 u = 1.0 - u;
@@ -162,7 +162,7 @@ impl Primitive for NonhierBox {
                         let diff_y = pt.y - p0.y;
                         if diff_z <= size && diff_z >= 0.0 && diff_y <= size && diff_y >= 0.0 {
                             let mut u = diff_z / size;
-                            let mut v = diff_y / size;
+                            let v = diff_y / size;
 
                             if i == 2 {
                                 u = 1.0 - u;
@@ -315,7 +315,7 @@ impl Primitive for Cube {
                 _ => panic!("This should never happen"),
             };
 
-            let mut nn = math::cross_4d(&(p1 - p0), &(p2 - p0));
+            let nn = math::cross_4d(&(p1 - p0), &(p2 - p0));
 
             let la = (origin - p0).dot(&nn);
             let lb = (point - p0).dot(&nn);
@@ -332,7 +332,7 @@ impl Primitive for Cube {
                         let diff_y = pt.y - p0.y;
                         if diff_x <= 1.0 && diff_x >= 0.0 && diff_y <= 1.0 && diff_y >= 0.0 {
                             let mut u = diff_x;
-                            let mut v = diff_y;
+                            let v = diff_y;
 
                             if i == 1 {
                                 u = 1.0 - u;
@@ -346,7 +346,7 @@ impl Primitive for Cube {
                         let diff_y = pt.y - p0.y;
                         if diff_z <= 1.0 && diff_z >= 0.0 && diff_y <= 1.0 && diff_y >= 0.0 {
                             let mut u = diff_z;
-                            let mut v = diff_y;
+                            let v = diff_y;
 
                             if i == 2 {
                                 u = 1.0 - u;
@@ -359,8 +359,8 @@ impl Primitive for Cube {
                         let diff_x = pt.x - p0.x;
                         let diff_z = pt.z - p0.z;
                         if diff_x <= 1.0 && diff_x >= 0.0 && diff_z <= 1.0 && diff_z >= 0.0 {
-                            let mut u = diff_x;
-                            let mut v = diff_z;
+                            let u = diff_x;
+                            let v = diff_z;
 
                             hit_info = Some((nn, nt, u, v));
                         }

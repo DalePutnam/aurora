@@ -9,11 +9,9 @@ mod lua_material;
 mod lua_light;
 
 use std::io::Read;
-use std::error::Error;
 use std::fs::File;
 use rlua::{self, Lua, Value, FromLua, Context};
 use core;
-use failure::Fail;
 
 pub struct SceneBuilder {
     lua: Lua,
@@ -32,13 +30,13 @@ impl SceneBuilder {
     pub fn run_build_script(&self, script_path: &String) -> Result<(), String> {
         let mut file = match File::open(script_path) {
             Ok(f) => f,
-            Err(e) => return Err(e.description().to_string()),
+            Err(e) => return Err(e.to_string()),
         };
 
         let mut contents = String::new();
         match file.read_to_string(&mut contents) {
             Ok(s) => s,
-            Err(e) => return Err(e.description().to_string()),
+            Err(e) => return Err(e.to_string()),
         };
 
         let result = self.lua.context(|lua_ctx| -> rlua::Result<()> {
