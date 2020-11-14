@@ -3,8 +3,8 @@ use std::sync::{RwLock, Arc};
 use na::{Matrix4, Vector3, Unit};
 use rlua::{self, UserData, UserDataMethods, Value, FromLua, Context};
 use core::traits::Primitive;
+use core::lua::vector3;
 use core::{NonhierBox, NonhierSphere, Sphere, Cube, Mesh, Material, Object};
-use scene_builder::{LuaVector3};
 
 /// A Lua wrapper for the SceneNode class
 pub struct LuaSceneNode {
@@ -130,7 +130,7 @@ pub fn lua_node_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>) -> 
 
 pub fn lua_nh_sphere_constructor<'lua>(lua:  Context<'lua>, lua_name: Value<'lua>, lua_position: Value<'lua>, lua_radius: Value<'lua>) -> rlua::Result<LuaSceneNode> {
     let name = String::from_lua(lua_name, lua)?;
-    let position = LuaVector3::from_lua(lua_position, lua)?.get_inner();
+    let position = vector3::from_lua(lua_position, lua)?;
     let radius = f32::from_lua(lua_radius, lua)?;
 
     let mut node = SceneNode::new(&name);
@@ -143,7 +143,7 @@ pub fn lua_nh_sphere_constructor<'lua>(lua:  Context<'lua>, lua_name: Value<'lua
 
 pub fn lua_nh_box_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>, lua_position: Value<'lua>, lua_size: Value<'lua>) -> rlua::Result<LuaSceneNode> {
     let name = String::from_lua(lua_name, lua)?;
-    let position = LuaVector3::from_lua(lua_position, lua)?.get_inner();
+    let position = vector3::from_lua(lua_position, lua)?;
     let size = f32::from_lua(lua_size, lua)?;
 
     let mut node = SceneNode::new(&name);

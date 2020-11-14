@@ -1,15 +1,12 @@
 pub use self::lua_scene_node::LuaSceneNode;
-pub use self::lua_light::LuaLight;
-pub use self::lua_vector::LuaVector3;
 
-mod lua_vector;
 mod lua_scene_node;
-mod lua_light;
 
 use std::io::Read;
 use std::fs::File;
 use rlua::{self, Lua, Value, FromLua, Context};
-use core::{self, Material};
+use core::{self, Material, Light};
+use core::lua::vector3;
 
 pub struct SceneBuilder {
     lua: Lua,
@@ -95,9 +92,7 @@ fn initialize_environment(lua: &mut Lua) {
         .expect("Failed to create mesh constructor");
 
         // Light Constructor
-        let light_ctor = lua_ctx.create_function(|lua_ctx, (lua_position, lua_colour, lua_falloff)| {
-            lua_light::lua_light_constructor(lua_ctx, lua_position, lua_colour, lua_falloff)
-        })
+        let light_ctor = lua_ctx.create_function(Light::lua_new)
         .expect("Failed to create light constructor");
 
         // Render function
@@ -142,19 +137,19 @@ fn lua_render<'lua>(lua: Context<'lua>, lua_scene_root: Value<'lua>, lua_output_
     let output_name = String::from_lua(lua_output_name, lua)?;
     let width = u32::from_lua(lua_width, lua)?;
     let height = u32::from_lua(lua_height, lua)?;
-    let eye = LuaVector3::from_lua(lua_eye, lua)?.get_inner();
-    let view = LuaVector3::from_lua(lua_view, lua)?.get_inner();
-    let up = LuaVector3::from_lua(lua_up, lua)?.get_inner();
+    let eye = vector3::from_lua(lua_eye, lua)?;
+    let view = vector3::from_lua(lua_view, lua)?;
+    let up = vector3::from_lua(lua_up, lua)?;
     let fov_y = f32::from_lua(lua_fov_y, lua)?;
-    let ambient = LuaVector3::from_lua(lua_ambient, lua)?.get_inner();
+    let ambient = vector3::from_lua(lua_ambient, lua)?;
 
     let lights = match lua_lights {
         Value::Table(table) => {
             let mut vec = Vec::new();
 
-            for value in table.sequence_values::<LuaLight>() {
+            for value in table.sequence_values::<Light>() {
                 let light = value?;
-                vec.push(light.get_internal_light());
+                vec.push(light);
             }
 
             vec
