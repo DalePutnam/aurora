@@ -1,17 +1,15 @@
 pub use self::lua_scene_node::LuaSceneNode;
-pub use self::lua_material::LuaMaterial;
 pub use self::lua_light::LuaLight;
 pub use self::lua_vector::LuaVector3;
 
 mod lua_vector;
 mod lua_scene_node;
-mod lua_material;
 mod lua_light;
 
 use std::io::Read;
 use std::fs::File;
 use rlua::{self, Lua, Value, FromLua, Context};
-use core;
+use core::{self, Material};
 
 pub struct SceneBuilder {
     lua: Lua,
@@ -93,10 +91,8 @@ fn initialize_environment(lua: &mut Lua) {
         .expect("Failed to create mesh constructor");
 
         // Material Constructor
-        let material_ctor = lua_ctx.create_function(|lua_ctx, (lua_diffuse, lua_specular, lua_shininess)| {
-            lua_material::lua_material_constructor(lua_ctx, lua_diffuse, lua_specular, lua_shininess)
-        })
-        .expect("Failed to create material constructor");
+        let material_ctor = lua_ctx.create_function(Material::lua_new)
+        .expect("Failed to create mesh constructor");
 
         // Light Constructor
         let light_ctor = lua_ctx.create_function(|lua_ctx, (lua_position, lua_colour, lua_falloff)| {

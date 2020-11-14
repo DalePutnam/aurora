@@ -4,7 +4,7 @@ use na::{Matrix4, Vector3, Unit};
 use rlua::{self, UserData, UserDataMethods, Value, FromLua, Context};
 use core::traits::Primitive;
 use core::{NonhierBox, NonhierSphere, Sphere, Cube, Mesh, Material, Object};
-use scene_builder::{LuaMaterial, LuaVector3};
+use scene_builder::{LuaVector3};
 
 /// A Lua wrapper for the SceneNode class
 pub struct LuaSceneNode {
@@ -105,10 +105,10 @@ impl UserData for LuaSceneNode {
         methods.add_method("set_material", |_, lua_node, lua_material| {
             match lua_material {
                 Value::UserData(user_data) => {
-                    match user_data.borrow::<LuaMaterial>() {
+                    match user_data.borrow::<Material>() {
                         Ok(material) => {
                             match lua_node.node.write() {
-                                Ok(mut scene_node) => scene_node.set_material(material.get_inner()),
+                                Ok(mut scene_node) => scene_node.set_material(&material),
                                 Err(_) => panic!("SceneNode lock is poisoned"),
                             };
 
@@ -134,7 +134,7 @@ pub fn lua_nh_sphere_constructor<'lua>(lua:  Context<'lua>, lua_name: Value<'lua
     let radius = f32::from_lua(lua_radius, lua)?;
 
     let mut node = SceneNode::new(&name);
-    let nh_sphere: Arc<Box<dyn Primitive>> = Arc::new(Box::new(NonhierSphere::new(position, radius)));
+    let nh_sphere: Arc<dyn Primitive> = Arc::new(NonhierSphere::new(position, radius));
 
     node.set_primitive(&nh_sphere);
 
@@ -147,7 +147,7 @@ pub fn lua_nh_box_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>, l
     let size = f32::from_lua(lua_size, lua)?;
 
     let mut node = SceneNode::new(&name);
-    let nh_box: Arc<Box<dyn Primitive>> = Arc::new(Box::new(NonhierBox::new(position, size)));
+    let nh_box: Arc<dyn Primitive> = Arc::new(NonhierBox::new(position, size));
 
     node.set_primitive(&nh_box);
 
@@ -158,7 +158,7 @@ pub fn lua_sphere_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>) -
     let name = String::from_lua(lua_name, lua)?;
 
     let mut node = SceneNode::new(&name);
-    let sphere: Arc<Box<dyn Primitive>> = Arc::new(Box::new(Sphere::new()));
+    let sphere: Arc<dyn Primitive> = Arc::new(Sphere::new());
 
     node.set_primitive(&sphere);
 
@@ -169,7 +169,7 @@ pub fn lua_cube_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>) -> 
     let name = String::from_lua(lua_name, lua)?;
 
     let mut node = SceneNode::new(&name);
-    let cube: Arc<Box<dyn Primitive>> = Arc::new(Box::new(Cube::new()));
+    let cube: Arc<dyn Primitive> = Arc::new(Cube::new());
 
     node.set_primitive(&cube);
 
@@ -181,7 +181,7 @@ pub fn lua_mesh_constructor<'lua>(lua: Context<'lua>, lua_name: Value<'lua>, lua
     let file_name = String::from_lua(lua_file_name, lua)?;
 
     let mut node = SceneNode::new(&name);
-    let mesh: Arc<Box<dyn Primitive>> = Arc::new(Box::new(Mesh::new(&file_name)));
+    let mesh: Arc<dyn Primitive> = Arc::new(Mesh::new(&file_name));
 
     node.set_primitive(&mesh);
 
@@ -192,8 +192,8 @@ struct SceneNode {
     _name: String,
     transform: Matrix4<f32>,
     children: Vec<Arc<RwLock<SceneNode>>>,
-    primitive: Option<Arc<Box<dyn Primitive>>>,
-    material: Option<Arc<Box<Material>>>
+    primitive: Option<Arc<dyn Primitive>>,
+    material: Option<Material>
 }
 
 impl SceneNode {
@@ -230,12 +230,12 @@ impl SceneNode {
         *current_id = id;
     }
 
-    fn set_primitive(&mut self, primitive: &Arc<Box<dyn Primitive>>) {
+    fn set_primitive(&mut self, primitive: &Arc<dyn Primitive>) {
         self.primitive = Some(Arc::clone(primitive));
     }
 
-    fn set_material(&mut self, material: &Arc<Box<Material>>) {
-        self.material = Some(Arc::clone(material));
+    fn set_material(&mut self, material: &Material) {
+        self.material = Some(material.clone());
     }
 
     fn rotate(&mut self, axis: char, angle: f32) {

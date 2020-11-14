@@ -10,6 +10,7 @@ pub use self::object::Object;
 pub use self::mesh::Mesh;
 pub use self::bounding_box::BoundingBox;
 
+pub mod lua;
 pub mod traits;
 pub mod util;
 pub mod primitives;
@@ -172,15 +173,15 @@ fn trace_pixel(ray: &Ray, objects: &Arc<Vec<Object>>, lights: &Arc<Vec<Light>>, 
     }
 }
 
-fn check_hit(ray: &Ray, objects: &Arc<Vec<Object>>) -> Option<(Hit, Arc<Box<Material>>)> {
+fn check_hit<'a>(ray: &Ray, objects: &'a Arc<Vec<Object>>) -> Option<(Hit, &'a Material)> {
     let mut min_intersect = f32::INFINITY;
-    let mut final_hit: Option<(Hit, Arc<Box<Material>>)> = None;
+    let mut final_hit: Option<(Hit, &'a Material)> = None;
     
     for object in objects.iter() {
         if let Some((hit, material)) = object.check_hit(ray) {
             if hit.intersect < min_intersect {
                 min_intersect = hit.intersect;
-                final_hit = Some((hit, material));
+                final_hit = Some((hit, &material));
             }
         }
     }
