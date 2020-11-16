@@ -1,5 +1,5 @@
 use na::Matrix4;
-use core::{PrimitivePtr, Material, Ray, Hit};
+use {PrimitivePtr, Material, Ray, Hit};
 
 pub struct Object {
     _id: u64,

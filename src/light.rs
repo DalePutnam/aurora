@@ -1,5 +1,5 @@
 use na::{Vector4, Vector3};
-use core::lua::vector3;
+use lua::vector3;
 use std::sync::Arc;
 use rlua::{Context, Value, UserData, UserDataMethods};
 

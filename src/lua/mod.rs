@@ -1,11 +1,11 @@
 pub mod vector3;
 pub mod node;
 
-use core::lua::node::SceneNodePtr;
+use lua::node::SceneNodePtr;
 use std::io::Read;
 use std::fs::File;
 use rlua::{self, Lua, Value, FromLua, Context};
-use core::{self, Material, Light};
+use {Material, Light};
 
 pub struct SceneBuilder {
     lua: Lua,
@@ -156,7 +156,7 @@ fn lua_render<'lua>(lua: Context<'lua>, lua_scene_root: Value<'lua>, lua_output_
         _ => return Err(rlua::Error::RuntimeError("gr.render expected an array as its tenth argument".to_string())),
     };
 
-    core::render(objects, output_name, width, height, eye, view, up, fov_y, ambient, lights);
+    ::render(objects, output_name, width, height, eye, view, up, fov_y, ambient, lights);
 
     Ok(())
 }

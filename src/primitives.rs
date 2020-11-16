@@ -1,7 +1,7 @@
 use na::{Vector4, Vector3, Matrix4};
-use core::{Ray, Hit};
-use core::util::math;
-use core::traits::Primitive;
+use {Ray, Hit};
+use util::math;
+use traits::Primitive;
 use std::f32;
 use std::sync::Arc;
 use std::ops::Deref;

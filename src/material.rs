@@ -1,6 +1,6 @@
 use na::Vector3;
 use std::sync::Arc;
-use core::lua::vector3;
+use lua::vector3;
 use rlua::{Context, Value, UserData, UserDataMethods, FromLua};
 
 struct MaterialInner {

@@ -1,8 +1,8 @@
 use na::{Matrix4, Vector3, Unit};
 use rlua::{self, UserData, UserDataMethods, Value, FromLua, Context};
-use core::{Object, Material, PrimitivePtr};
-use core::lua::vector3;
-use core::{Mesh, Cube, Sphere, NonhierBox, NonhierSphere};
+use {Object, Material, PrimitivePtr};
+use lua::vector3;
+use {Mesh, Cube, Sphere, NonhierBox, NonhierSphere};
 use std::sync::{Arc, RwLock};
 use std::cell::RefCell;
 use std::ops::Deref;
