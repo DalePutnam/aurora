@@ -2,6 +2,7 @@ pub use self::primitives::NonhierBox;
 pub use self::primitives::NonhierSphere;
 pub use self::primitives::Sphere;
 pub use self::primitives::Cube;
+pub use self::primitives::PrimitivePtr;
 pub use self::material::Material;
 pub use self::ray::Ray;
 pub use self::ray::Hit;

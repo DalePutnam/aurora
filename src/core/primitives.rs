@@ -3,6 +3,29 @@ use core::{Ray, Hit};
 use core::util::math;
 use core::traits::Primitive;
 use std::f32;
+use std::sync::Arc;
+use std::ops::Deref;
+
+#[derive(Clone)]
+pub struct PrimitivePtr {
+    inner: Arc<dyn Primitive>
+}
+
+impl Deref for PrimitivePtr {
+    type Target = Arc<dyn Primitive>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl PrimitivePtr {
+    pub fn new<T: Primitive + 'static>(primitive: T) -> Self {
+        PrimitivePtr {
+            inner: Arc::new(primitive)
+        }
+    }
+}
 
 pub struct NonhierSphere {
     position: Vector4<f32>,

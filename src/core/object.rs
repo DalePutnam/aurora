@@ -1,21 +1,19 @@
-use std::sync::Arc;
 use na::Matrix4;
-use core::traits::Primitive;
-use core::{Material, Ray, Hit};
+use core::{PrimitivePtr, Material, Ray, Hit};
 
 pub struct Object {
     _id: u64,
     transform: Matrix4<f32>,
-    primitive: Arc<dyn Primitive>,
+    primitive: PrimitivePtr,
     material: Material,
 }
 
 impl Object {
-    pub fn new(id: u64, transform: &Matrix4<f32>, primitive: &Arc<dyn Primitive>, material: &Material) -> Self {
+    pub fn new(id: u64, transform: &Matrix4<f32>, primitive: &PrimitivePtr, material: &Material) -> Self {
         Object {
             _id: id,
             transform: transform.try_inverse().unwrap(), // We need the world to model matrix here
-            primitive: Arc::clone(primitive),
+            primitive: primitive.clone(),
             material: material.clone(),
         }
     }

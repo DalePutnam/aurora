@@ -5,9 +5,8 @@ extern crate nalgebra as na;
 extern crate num_cpus;
 
 mod core;
-mod scene_builder;
 
-use scene_builder::SceneBuilder;
+use core::lua::SceneBuilder;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
