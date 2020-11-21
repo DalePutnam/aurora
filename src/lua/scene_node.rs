@@ -54,7 +54,6 @@ impl SceneNode {
                     material,
                 ));
             }
-            .into()
         }
 
         let mut id = *current_id + 1;
