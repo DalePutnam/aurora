@@ -38,7 +38,6 @@ use na::{Vector3, Vector4, Matrix4};
 use image::{ImageBuffer, Pixel, Rgb, ColorType, png};
 use lua::SceneBuilder;
 
-
 pub fn render(objects: Vec<Object>, output_name: String, output_width: u32, output_height: u32,
               eye: Vector3<f32>, view: Vector3<f32>, up: Vector3<f32>, fov_y: f32, ambient: Vector3<f32>, lights: Vec<Light>)
 {
