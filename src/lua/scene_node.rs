@@ -35,34 +35,36 @@ impl SceneNode {
         }
     }
 
-    pub fn convert_to_object_list(
+    pub fn convert_to_object_list(&self) -> Vec<Object> {
+        self.convert_to_object_list_inner(&Matrix4::identity(), 0).0
+    }
+
+    fn convert_to_object_list_inner(
         &self,
-        list: &mut Vec<Object>,
         transform: &Matrix4<f32>,
-        current_id: &mut u64,
-    ) {
+        id: u64,
+    ) -> (Vec<Object>, u64) {
         let node = self.inner.lock().unwrap();
 
+        let mut list = Vec::new();
         let new_transform = transform * node.transform;
 
         if let Some(primitive) = node.primitive.clone() {
             if let Some(material) = node.material.clone() {
-                list.push(Object::new(
-                    *current_id,
-                    &new_transform,
-                    primitive,
-                    material,
-                ));
+                list.push(Object::new(id, &new_transform, primitive, material));
             }
         }
 
-        let mut id = *current_id + 1;
+        let mut child_id = id + 1;
 
         for child in &node.children {
-            child.convert_to_object_list(list, &new_transform, &mut id);
+            let (mut objects, new_id) =
+                child.convert_to_object_list_inner(&new_transform, child_id);
+            list.append(&mut objects);
+            child_id = new_id;
         }
 
-        *current_id = id;
+        (list, child_id)
     }
 
     pub fn set_primitive<T: Primitive + 'static>(&mut self, primitive: lua::Pointer<T>) {

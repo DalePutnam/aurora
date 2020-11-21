@@ -164,15 +164,10 @@ impl SceneBuilder {
     ) -> rlua::Result<()> {
         let objects = match lua_scene_root {
             Value::UserData(user_data) => match user_data.borrow::<lua::SceneNode>() {
-                Ok(n) => {
-                    let mut list = Vec::new();
-                    let mut id = 0;
-
-                    n.convert_to_object_list(&mut list, &na::Matrix4::identity(), &mut id);
-
-                    list
+                Ok(root_node) => {
+                    root_node.convert_to_object_list()
                 }
-                Err(e) => return Err(e),
+                Err(error) => return Err(error),
             },
             _ => {
                 return Err(rlua::Error::RuntimeError(
