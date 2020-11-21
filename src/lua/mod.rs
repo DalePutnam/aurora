@@ -1,25 +1,25 @@
 pub mod constructors;
-pub mod vector3;
-pub mod scene_node;
-pub mod pointer;
 pub mod light;
+pub mod pointer;
+pub mod scene_node;
+pub mod vector3;
 
-pub use self::vector3::Vector3;
 pub use self::pointer::Pointer;
 pub use self::scene_node::SceneNode;
+pub use self::vector3::Vector3;
 
-use std::io::Read;
-use std::fs::File;
-use rlua::{Lua, Value, FromLua, Context};
-use na;
 use lua;
-use Material;
-use Light;
-use NonhierSphere;
-use NonhierBox;
-use Sphere;
+use na;
+use rlua::{Context, FromLua, Lua, Value};
+use std::fs::File;
+use std::io::Read;
 use Cube;
+use Light;
+use Material;
 use Mesh;
+use NonhierBox;
+use NonhierSphere;
+use Sphere;
 
 pub struct SceneBuilder {
     lua: Lua,
@@ -30,9 +30,7 @@ impl SceneBuilder {
         let mut lua = Lua::new();
         initialize_environment(&mut lua);
 
-        SceneBuilder {
-            lua: lua,
-        }
+        SceneBuilder { lua: lua }
     }
 
     pub fn run_build_script(&self, script_path: &String) -> Result<(), String> {
@@ -65,78 +63,134 @@ fn initialize_environment(lua: &mut Lua) {
         let gr = lua_ctx.create_table().expect("Failed to create gr table");
 
         // Constructor for a SceneNode with no geometry
-        let scene_node_ctor = lua_ctx.create_function(lua::SceneNode::lua_new)
-        .expect("Failed to create node constructor");
+        let scene_node_ctor = lua_ctx
+            .create_function(lua::SceneNode::lua_new)
+            .expect("Failed to create node constructor");
 
-        let nh_sphere_ctor = lua_ctx.create_function(NonhierSphere::lua_new)
-        .expect("Failed to create nh_sphere constructor");
+        let nh_sphere_ctor = lua_ctx
+            .create_function(NonhierSphere::lua_new)
+            .expect("Failed to create nh_sphere constructor");
 
         // NonhierBox Constructor
-        let nh_box_ctor = lua_ctx.create_function(NonhierBox::lua_new)
-        .expect("Failed to create nh_box constructor");
+        let nh_box_ctor = lua_ctx
+            .create_function(NonhierBox::lua_new)
+            .expect("Failed to create nh_box constructor");
 
         // Sphere Constructor
-        let sphere_ctor = lua_ctx.create_function(Sphere::lua_new)
-        .expect("Failed to create sphere constructor");
+        let sphere_ctor = lua_ctx
+            .create_function(Sphere::lua_new)
+            .expect("Failed to create sphere constructor");
 
         // Cube Constructor
-        let cube_ctor = lua_ctx.create_function(Cube::lua_new)
-        .expect("Failed to create cube constructor");
+        let cube_ctor = lua_ctx
+            .create_function(Cube::lua_new)
+            .expect("Failed to create cube constructor");
 
         // Mesh Constructor
-        let mesh_ctor = lua_ctx.create_function(Mesh::lua_new)
-        .expect("Failed to create mesh constructor");
+        let mesh_ctor = lua_ctx
+            .create_function(Mesh::lua_new)
+            .expect("Failed to create mesh constructor");
 
         // Material Constructor
-        let material_ctor = lua_ctx.create_function(Material::lua_new)
-        .expect("Failed to create mesh constructor");
+        let material_ctor = lua_ctx
+            .create_function(Material::lua_new)
+            .expect("Failed to create mesh constructor");
 
         // Light Constructor
-        let light_ctor = lua_ctx.create_function(Light::lua_new)
-        .expect("Failed to create light constructor");
+        let light_ctor = lua_ctx
+            .create_function(Light::lua_new)
+            .expect("Failed to create light constructor");
 
         // Render function
-        let render = lua_ctx.create_function(|lua_ctx, (lua_scene_root, lua_output, lua_width, lua_height, lua_eye, lua_view, lua_up, lua_fov_y, lua_ambient, lua_lights)| {
-            lua_render(lua_ctx, lua_scene_root, lua_output, lua_width, lua_height, lua_eye, lua_view, lua_up, lua_fov_y, lua_ambient, lua_lights)
-        })
-        .expect("Failed to create render function");
+        let render = lua_ctx
+            .create_function(
+                |lua_ctx,
+                 (
+                    lua_scene_root,
+                    lua_output,
+                    lua_width,
+                    lua_height,
+                    lua_eye,
+                    lua_view,
+                    lua_up,
+                    lua_fov_y,
+                    lua_ambient,
+                    lua_lights,
+                )| {
+                    lua_render(
+                        lua_ctx,
+                        lua_scene_root,
+                        lua_output,
+                        lua_width,
+                        lua_height,
+                        lua_eye,
+                        lua_view,
+                        lua_up,
+                        lua_fov_y,
+                        lua_ambient,
+                        lua_lights,
+                    )
+                },
+            )
+            .expect("Failed to create render function");
 
-        gr.set("node", scene_node_ctor).expect("Failed to assign LuaSceneNode constructor to gr.node");
-        gr.set("nh_sphere", nh_sphere_ctor).expect("Failed to assign NonhierSphere constructor to gr.nh_sphere");
-        gr.set("nh_box", nh_box_ctor).expect("Failed to assign NonhierBox constructor to gr.nh_box");
-        gr.set("sphere", sphere_ctor).expect("Failed to assign Sphere constructor to gr.sphere");
-        gr.set("cube", cube_ctor).expect("Failed to assign Cube constructor to gr.cube");
-        gr.set("mesh", mesh_ctor).expect("Failed to assign Mesh constructor to gr.mesh");
-        gr.set("material", material_ctor).expect("Failed to assign Material constructor to gr.material");
-        gr.set("light", light_ctor).expect("Failed to assign Light constructor to gr.light");
-        gr.set("render", render).expect("Failed to assign render function to gr.render");
+        gr.set("node", scene_node_ctor)
+            .expect("Failed to assign LuaSceneNode constructor to gr.node");
+        gr.set("nh_sphere", nh_sphere_ctor)
+            .expect("Failed to assign NonhierSphere constructor to gr.nh_sphere");
+        gr.set("nh_box", nh_box_ctor)
+            .expect("Failed to assign NonhierBox constructor to gr.nh_box");
+        gr.set("sphere", sphere_ctor)
+            .expect("Failed to assign Sphere constructor to gr.sphere");
+        gr.set("cube", cube_ctor)
+            .expect("Failed to assign Cube constructor to gr.cube");
+        gr.set("mesh", mesh_ctor)
+            .expect("Failed to assign Mesh constructor to gr.mesh");
+        gr.set("material", material_ctor)
+            .expect("Failed to assign Material constructor to gr.material");
+        gr.set("light", light_ctor)
+            .expect("Failed to assign Light constructor to gr.light");
+        gr.set("render", render)
+            .expect("Failed to assign render function to gr.render");
 
         globals.set("gr", gr).expect("Failed to add gr to globals");
-   
+
         Ok(())
     });
 
     result.unwrap();
 }
 
-fn lua_render<'lua>(lua: Context<'lua>, lua_scene_root: Value<'lua>, lua_output_name: Value<'lua>, lua_width: Value<'lua>, lua_height: Value<'lua>,
-            lua_eye: Value<'lua>, lua_view: Value<'lua>, lua_up: Value<'lua>, lua_fov_y: Value<'lua>, lua_ambient: Value<'lua>, lua_lights: Value<'lua>) -> rlua::Result<()> {
-
+fn lua_render<'lua>(
+    lua: Context<'lua>,
+    lua_scene_root: Value<'lua>,
+    lua_output_name: Value<'lua>,
+    lua_width: Value<'lua>,
+    lua_height: Value<'lua>,
+    lua_eye: Value<'lua>,
+    lua_view: Value<'lua>,
+    lua_up: Value<'lua>,
+    lua_fov_y: Value<'lua>,
+    lua_ambient: Value<'lua>,
+    lua_lights: Value<'lua>,
+) -> rlua::Result<()> {
     let objects = match lua_scene_root {
-        Value::UserData(user_data) => {
-            match user_data.borrow::<lua::SceneNode>() {
-                Ok(n) => {
-                    let mut list = Vec::new();
-                    let mut id = 0;
+        Value::UserData(user_data) => match user_data.borrow::<lua::SceneNode>() {
+            Ok(n) => {
+                let mut list = Vec::new();
+                let mut id = 0;
 
-                    n.convert_to_object_list(&mut list, &na::Matrix4::identity(), &mut id);
+                n.convert_to_object_list(&mut list, &na::Matrix4::identity(), &mut id);
 
-                    list
-                },
-                Err(e) => return Err(e), 
+                list
             }
+            Err(e) => return Err(e),
         },
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected a scene node as its first argument".to_string())),
+        _ => {
+            return Err(rlua::Error::RuntimeError(
+                "gr.render expected a scene node as its first argument".to_string(),
+            ))
+        }
     };
 
     let output_name = String::from_lua(lua_output_name, lua)?;
@@ -158,11 +212,26 @@ fn lua_render<'lua>(lua: Context<'lua>, lua_scene_root: Value<'lua>, lua_output_
             }
 
             vec
-        },
-        _ => return Err(rlua::Error::RuntimeError("gr.render expected an array as its tenth argument".to_string())),
+        }
+        _ => {
+            return Err(rlua::Error::RuntimeError(
+                "gr.render expected an array as its tenth argument".to_string(),
+            ))
+        }
     };
 
-    ::render(objects, output_name, width, height, na::Vector3::from(eye), na::Vector3::from(view), na::Vector3::from(up), fov_y, na::Vector3::from(ambient), lights);
+    ::render(
+        objects,
+        output_name,
+        width,
+        height,
+        na::Vector3::from(eye),
+        na::Vector3::from(view),
+        na::Vector3::from(up),
+        fov_y,
+        na::Vector3::from(ambient),
+        lights,
+    );
 
     Ok(())
 }

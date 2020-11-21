@@ -1,27 +1,28 @@
-use na::{Matrix4, Vector3, Unit};
-use rlua::{self, UserData, UserDataMethods, Value, FromLua, Context};
-use {Object, Material};
+use lua;
+use na::{Matrix4, Unit, Vector3};
+use rlua::{self, Context, FromLua, UserData, UserDataMethods, Value};
+use std::clone::Clone;
 use std::sync::{Arc, Mutex};
 use traits::Primitive;
-use std::clone::Clone;
-use lua;
+use Material;
+use Object;
 
 struct SceneNodeInner {
     _name: String,
     transform: Matrix4<f32>,
     children: Vec<SceneNode>,
     primitive: Option<Arc<dyn Primitive>>,
-    material: Option<Arc<Material>>
+    material: Option<Arc<Material>>,
 }
 
 #[derive(Clone)]
 pub struct SceneNode {
-    inner: Arc<Mutex<SceneNodeInner>>
+    inner: Arc<Mutex<SceneNodeInner>>,
 }
 
 impl SceneNode {
     pub fn new(name: &str) -> Self {
-        let inner = SceneNodeInner { 
+        let inner = SceneNodeInner {
             _name: name.to_string(),
             transform: Matrix4::identity(),
             children: Vec::new(),
@@ -29,18 +30,31 @@ impl SceneNode {
             material: None,
         };
 
-        SceneNode { inner: Arc::new(Mutex::new(inner)) }
+        SceneNode {
+            inner: Arc::new(Mutex::new(inner)),
+        }
     }
 
-    pub fn convert_to_object_list(&self, list: &mut Vec<Object>, transform: &Matrix4<f32>, current_id: &mut u64) {
+    pub fn convert_to_object_list(
+        &self,
+        list: &mut Vec<Object>,
+        transform: &Matrix4<f32>,
+        current_id: &mut u64,
+    ) {
         let node = self.inner.lock().unwrap();
 
         let new_transform = transform * node.transform;
 
         if let Some(primitive) = node.primitive.clone() {
             if let Some(material) = node.material.clone() {
-                list.push(Object::new(*current_id, &new_transform, primitive, material));
-            }.into()
+                list.push(Object::new(
+                    *current_id,
+                    &new_transform,
+                    primitive,
+                    material,
+                ));
+            }
+            .into()
         }
 
         let mut id = *current_id + 1;
@@ -69,10 +83,11 @@ impl SceneNode {
             'x' | 'X' => Vector3::new(1.0, 0.0, 0.0),
             'y' | 'Y' => Vector3::new(0.0, 1.0, 0.0),
             'z' | 'Z' => Vector3::new(0.0, 0.0, 1.0),
-             _  => return,
+            _ => return,
         };
 
-        let rotation_matrix = Matrix4::from_axis_angle(&Unit::new_normalize(rotation_axis), angle.to_radians());
+        let rotation_matrix =
+            Matrix4::from_axis_angle(&Unit::new_normalize(rotation_axis), angle.to_radians());
         node.transform = rotation_matrix * node.transform;
     }
 
@@ -100,18 +115,15 @@ impl SceneNode {
         let name = String::from_lua(lua_name, lua)?;
         Ok(SceneNode::new(&name))
     }
-    
 }
 
 impl UserData for SceneNode {
     fn add_methods<'lua, T: UserDataMethods<'lua, Self>>(methods: &mut T) {
         methods.add_method_mut("rotate", |lua, lua_node, (lua_axis, lua_angle)| {
             let axis = match lua_axis {
-                Value::String(string) => {
-                    match string.to_str() {
-                        Ok(slice) => slice.chars().nth(0).unwrap(),
-                        Err(e) => panic!(e),
-                    }
+                Value::String(string) => match string.to_str() {
+                    Ok(slice) => slice.chars().nth(0).unwrap(),
+                    Err(e) => panic!(e),
                 },
                 _ => panic!("Failed to rotate"),
             };
@@ -128,7 +140,7 @@ impl UserData for SceneNode {
             let y = f32::from_lua(lua_y, lua)?;
             let z = f32::from_lua(lua_z, lua)?;
             let amount = Vector3::new(x, y, z);
- 
+
             lua_node.scale(&amount);
 
             Ok(())
@@ -145,34 +157,34 @@ impl UserData for SceneNode {
             Ok(())
         });
 
-        methods.add_method_mut("add_child", |_, lua_node, child_lua_node| {
-            match child_lua_node {
-                Value::UserData(user_data) => {
-                    match user_data.borrow::<SceneNode>() {
-                        Ok(child_node) => {
-                            lua_node.add_child(child_node.clone());
-                            Ok(())
-                        },
-                        Err(_) => panic!("Invalid node!"),
+        methods.add_method_mut(
+            "add_child",
+            |_, lua_node, child_lua_node| match child_lua_node {
+                Value::UserData(user_data) => match user_data.borrow::<SceneNode>() {
+                    Ok(child_node) => {
+                        lua_node.add_child(child_node.clone());
+                        Ok(())
                     }
+                    Err(_) => panic!("Invalid node!"),
                 },
                 _ => panic!("Invalid node!"),
-            }
-        });
+            },
+        );
 
-        methods.add_method_mut("set_material", |_, lua_node, lua_material| {
-            match lua_material {
-                Value::UserData(user_data) => {
-                    match user_data.borrow::<lua::Pointer<Material>>() {
-                        Ok(material) => {
-                            lua_node.set_material(material.clone());
-                            Ok(())
-                        },
-                        Err(e) => Err(e),
+        methods.add_method_mut(
+            "set_material",
+            |_, lua_node, lua_material| match lua_material {
+                Value::UserData(user_data) => match user_data.borrow::<lua::Pointer<Material>>() {
+                    Ok(material) => {
+                        lua_node.set_material(material.clone());
+                        Ok(())
                     }
+                    Err(e) => Err(e),
                 },
-                _ => Err(rlua::Error::RuntimeError("set_material expected a LuaMaterial as its first argument".to_string())),
-            }
-        });
+                _ => Err(rlua::Error::RuntimeError(
+                    "set_material expected a LuaMaterial as its first argument".to_string(),
+                )),
+            },
+        );
     }
 }

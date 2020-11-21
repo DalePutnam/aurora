@@ -1,16 +1,16 @@
-use std::sync::Arc;
-use std::ops::Deref;
 use rlua::{UserData, UserDataMethods};
+use std::ops::Deref;
+use std::sync::Arc;
 
 pub struct Pointer<T: ?Sized>(Arc<T>);
 
-impl <T> Pointer<T> {
+impl<T> Pointer<T> {
     pub fn new(value: T) -> Pointer<T> {
         Pointer(Arc::new(value))
     }
 }
 
-impl <T: ?Sized> Deref for Pointer<T> {
+impl<T: ?Sized> Deref for Pointer<T> {
     type Target = Arc<T>;
 
     fn deref(&self) -> &Self::Target {
@@ -18,24 +18,24 @@ impl <T: ?Sized> Deref for Pointer<T> {
     }
 }
 
-impl <T: ?Sized> Clone for Pointer<T> {
+impl<T: ?Sized> Clone for Pointer<T> {
     fn clone(&self) -> Self {
         Pointer(self.0.clone())
     }
 }
 
-impl <T: ?Sized> From<Arc<T>> for Pointer<T> {
+impl<T: ?Sized> From<Arc<T>> for Pointer<T> {
     fn from(arc: Arc<T>) -> Self {
         Pointer(arc)
     }
 }
 
-impl <T: ?Sized> From<Pointer<T>> for Arc<T> {
+impl<T: ?Sized> From<Pointer<T>> for Arc<T> {
     fn from(lua_ptr: Pointer<T>) -> Self {
         lua_ptr.0
     }
 }
 
-impl <T: ?Sized> UserData for Pointer<T> {
+impl<T: ?Sized> UserData for Pointer<T> {
     fn add_methods<'lua, U: UserDataMethods<'lua, Self>>(_methods: &mut U) {}
 }
