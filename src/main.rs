@@ -5,6 +5,7 @@ extern crate num_cpus;
 extern crate rlua;
 
 pub use self::bounding_box::BoundingBox;
+pub use self::cook_torrance::CookTorrance;
 pub use self::light::Light;
 pub use self::material::Material;
 pub use self::mesh::Mesh;
@@ -20,6 +21,7 @@ pub use self::ray::Ray;
 pub use self::scene::Scene;
 
 pub mod bounding_box;
+pub mod cook_torrance;
 pub mod light;
 pub mod lua;
 pub mod material;

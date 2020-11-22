@@ -9,6 +9,7 @@ use NonhierBox;
 use NonhierSphere;
 use Phong;
 use Sphere;
+use CookTorrance;
 
 pub struct SceneBuilder {
     lua: Lua,
@@ -84,6 +85,11 @@ impl SceneBuilder {
                 .create_function(Phong::lua_new)
                 .expect("Failed to create mesh constructor");
 
+            // CookTorrance Material Constructor
+            let cook_torrance_ctor = lua_ctx
+            .create_function(CookTorrance::lua_new)
+            .expect("Failed to create mesh constructor");
+
             // Light Constructor
             let light_ctor = lua_ctx
                 .create_function(Light::lua_new)
@@ -135,6 +141,8 @@ impl SceneBuilder {
             gr.set("mesh", mesh_ctor)
                 .expect("Failed to assign Mesh constructor to gr.mesh");
             gr.set("material", material_ctor)
+                .expect("Failed to assign Material constructor to gr.material");
+            gr.set("cook_torrance", cook_torrance_ctor)
                 .expect("Failed to assign Material constructor to gr.material");
             gr.set("light", light_ctor)
                 .expect("Failed to assign Light constructor to gr.light");

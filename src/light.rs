@@ -20,6 +20,10 @@ impl Light {
         &self.position
     }
 
+    pub fn get_colour(&self) -> &Vector3<f32> {
+        &self.colour
+    }
+
     pub fn attenuate(&self, distance: f32) -> Vector3<f32> {
         self.colour
             / (self.falloff.x

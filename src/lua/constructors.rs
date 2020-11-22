@@ -8,6 +8,7 @@ use Mesh;
 use NonhierBox;
 use NonhierSphere;
 use Phong;
+use CookTorrance;
 use Sphere;
 
 impl Phong {
@@ -25,6 +26,27 @@ impl Phong {
             na::Vector3::from(diffuse),
             na::Vector3::from(specular),
             shininess,
+        ))))
+    }
+}
+
+impl CookTorrance {
+    pub fn lua_new<'lua>(
+        lua: Context<'lua>,
+        lua_value: (Value<'lua>, Value<'lua>, Value<'lua>, Value<'lua>),
+    ) -> rlua::Result<lua::Pointer<Material>> {
+        let (lua_colour, lua_diffuse, lua_roughness, lua_refractive_index) = lua_value;
+
+        let colour = lua::Vector3::from_lua(lua_colour, lua)?;
+        let diffuse = f32::from_lua(lua_diffuse, lua)?;
+        let roughness = f32::from_lua(lua_roughness, lua)?;
+        let refractive_index = f32::from_lua(lua_refractive_index, lua)?;
+
+        Ok(lua::Pointer::new(Material::new(CookTorrance::new(
+            na::Vector3::from(colour),
+            diffuse,
+            roughness,
+            refractive_index,
         ))))
     }
 }

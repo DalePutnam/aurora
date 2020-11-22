@@ -1,6 +1,7 @@
 use na::{Vector4, U3};
 
 pub const EPSILON: f32 = 0.0001;
+pub const PI: f32 = 3.14159265;
 
 pub enum QuadRoots {
     Two(f32, f32),
