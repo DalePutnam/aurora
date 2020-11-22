@@ -23,46 +23,6 @@ impl CookTorrance {
         }
     }
 
-    fn ggx_distribution(&self, half: &Vector4<f32>, normal: &Vector4<f32>) -> f32 {
-        let a2 = self.roughness.powi(2);
-        let hn = half.dot(&normal);
-        let hn2 = hn.powi(2);
-
-        (chi(hn) * a2) / (math::PI * ((hn2 * a2) + (1.0 - hn2)).powi(2))
-    }
-
-    fn ggx_geometry(
-        &self,
-        view: &Vector4<f32>,
-        light: &Vector4<f32>,
-        half: &Vector4<f32>,
-        normal: &Vector4<f32>,
-    ) -> f32 {
-        self.ggx_geometry_partial(view, half, normal)
-            * self.ggx_geometry_partial(light, half, normal)
-    }
-
-    fn ggx_geometry_partial(
-        &self,
-        direction: &Vector4<f32>,
-        half: &Vector4<f32>,
-        normal: &Vector4<f32>,
-    ) -> f32 {
-        let a2 = self.roughness.powi(2);
-        let dh = direction.dot(&half);
-        let dn = direction.dot(&normal);
-        let dn2 = dn.powi(2);
-        let tan2 = (1.0 - dn2) / dn2;
-
-        (chi(dh / dn) * 2.0) / (1.0 + (1.0 + (a2 * tan2)).sqrt())
-    }
-
-    fn fresnel(&self, view: &Vector4<f32>, half: &Vector4<f32>) -> f32 {
-        let f0 = (self.refractive_index - 1.0).powi(2) / (self.refractive_index + 1.0).powi(2);
-
-        f0 + ((1.0 - f0) * (1.0 - view.dot(&half)).powi(5))
-    }
-
     fn calculate_diffuse(
         &self,
         contact_point: &Vector4<f32>,
@@ -101,9 +61,9 @@ impl CookTorrance {
             return Vector3::new(0.0, 0.0, 0.0);
         }
 
-        let d = self.ggx_distribution(&h, &n);
-        let g = self.ggx_geometry(&v, &l, &h, &n);
-        let f = self.fresnel(&v, &h);
+        let d = ggx_distribution(&h, &n, self.roughness);
+        let g = ggx_geometry(&v, &l, &h, &n, self.roughness);
+        let f = fresnel(&v, &h, self.refractive_index);
 
         let specular = ((d * g * f) / (4.0 * nv)) * (1.0 - self.diffuse);
 
@@ -147,4 +107,44 @@ fn chi(a: f32) -> f32 {
     } else {
         0.0
     }
+}
+
+fn ggx_distribution(half: &Vector4<f32>, normal: &Vector4<f32>, alpha: f32) -> f32 {
+    let a2 = alpha.powi(2);
+    let hn = half.dot(&normal);
+    let hn2 = hn.powi(2);
+
+    (chi(hn) * a2) / (math::PI * ((hn2 * a2) + (1.0 - hn2)).powi(2))
+}
+
+fn ggx_geometry(
+    view: &Vector4<f32>,
+    light: &Vector4<f32>,
+    half: &Vector4<f32>,
+    normal: &Vector4<f32>,
+    alpha: f32
+) -> f32 {
+    ggx_geometry_partial(view, half, normal, alpha)
+        * ggx_geometry_partial(light, half, normal, alpha)
+}
+
+fn ggx_geometry_partial(
+    direction: &Vector4<f32>,
+    half: &Vector4<f32>,
+    normal: &Vector4<f32>,
+    alpha: f32
+) -> f32 {
+    let a2 = alpha.powi(2);
+    let dh = direction.dot(&half);
+    let dn = direction.dot(&normal);
+    let dn2 = dn.powi(2);
+    let tan2 = (1.0 - dn2) / dn2;
+
+    (chi(dh / dn) * 2.0) / (1.0 + (1.0 + (a2 * tan2)).sqrt())
+}
+
+fn fresnel(view: &Vector4<f32>, half: &Vector4<f32>, ior: f32) -> f32 {
+    let f0 = (ior - 1.0).powi(2) / (ior + 1.0).powi(2);
+
+    f0 + ((1.0 - f0) * (1.0 - view.dot(&half)).powi(5))
 }
