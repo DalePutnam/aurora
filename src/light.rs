@@ -1,4 +1,4 @@
-use na::{Vector4, Vector3};
+use na::{Vector3, Vector4};
 
 #[derive(Clone)]
 pub struct Light {
@@ -20,11 +20,10 @@ impl Light {
         &self.position
     }
 
-    pub fn get_colour(&self) -> &Vector3<f32> {
-        &self.colour
-    }
-
-    pub fn get_falloff(&self) -> &Vector3<f32> {
-        &self.falloff
+    pub fn attenuate(&self, distance: f32) -> Vector3<f32> {
+        self.colour
+            / (self.falloff.x
+                + (self.falloff.y * distance)
+                + (self.falloff.z * distance * distance))
     }
 }

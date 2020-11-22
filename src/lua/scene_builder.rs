@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::Read;
 use Cube;
 use Light;
-use Material;
+use Phong;
 use Mesh;
 use NonhierBox;
 use NonhierSphere;
@@ -81,7 +81,7 @@ impl SceneBuilder {
 
             // Material Constructor
             let material_ctor = lua_ctx
-                .create_function(Material::lua_new)
+                .create_function(Phong::lua_new)
                 .expect("Failed to create mesh constructor");
 
             // Light Constructor

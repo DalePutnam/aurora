@@ -8,8 +8,9 @@ use Mesh;
 use NonhierBox;
 use NonhierSphere;
 use Sphere;
+use Phong;
 
-impl Material {
+impl Phong {
     pub fn lua_new<'lua>(
         lua: Context<'lua>,
         lua_value: (Value<'lua>, Value<'lua>, Value<'lua>),
@@ -20,11 +21,11 @@ impl Material {
         let specular = lua::Vector3::from_lua(lua_specular, lua)?;
         let shininess = f32::from_lua(lua_shininess, lua)?;
 
-        Ok(lua::Pointer::new(Material::new(
+        Ok(lua::Pointer::new(Material::new(Phong::new(
             na::Vector3::from(diffuse),
             na::Vector3::from(specular),
             shininess,
-        )))
+        ))))
     }
 }
 

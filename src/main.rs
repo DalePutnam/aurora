@@ -17,6 +17,7 @@ pub use self::object::Object;
 pub use self::mesh::Mesh;
 pub use self::bounding_box::BoundingBox;
 pub use self::scene::Scene;
+pub use self::phong::Phong;
 
 pub mod lua;
 pub mod traits;
@@ -29,6 +30,7 @@ pub mod light;
 pub mod mesh;
 pub mod bounding_box;
 pub mod scene;
+pub mod phong;
 
 use std::f32;
 use std::thread;
