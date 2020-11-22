@@ -1,6 +1,6 @@
 use na::Vector3;
-use Ray;
 use Hit;
+use Ray;
 use Scene;
 
 pub trait BSDF: Send + Sync {

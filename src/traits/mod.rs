@@ -1,5 +1,5 @@
-pub use self::primitive::Primitive;
 pub use self::bsdf::BSDF;
+pub use self::primitive::Primitive;
 
-pub mod primitive;
 pub mod bsdf;
+pub mod primitive;

@@ -7,8 +7,8 @@ use Material;
 use Mesh;
 use NonhierBox;
 use NonhierSphere;
-use Sphere;
 use Phong;
+use Sphere;
 
 impl Phong {
     pub fn lua_new<'lua>(

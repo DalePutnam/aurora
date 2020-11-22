@@ -1,11 +1,11 @@
-use traits::Primitive;
-use {Ray, Hit, BoundingBox};
-use util::math;
-use std::io::BufReader;
-use std::io::prelude::*;
-use std::fs::File;
+use na::{Matrix3, Matrix4, Vector4};
 use std::f32;
-use na::{Matrix4, Matrix3, Vector4};
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
+use traits::Primitive;
+use util::math;
+use {BoundingBox, Hit, Ray};
 
 pub struct Mesh {
     vertices: Vec<Vector4<f32>>,
@@ -29,7 +29,7 @@ impl Mesh {
 
         for line in reader.lines() {
             let line = line.unwrap();
-            
+
             let mut line_iter = line.split_whitespace();
 
             if let Some(data_type) = line_iter.next() {
@@ -40,15 +40,19 @@ impl Mesh {
                         let z = line_iter.next().unwrap().parse::<f32>().unwrap();
 
                         vertices.push(Vector4::new(x, y, z, 1.0));
-                    },
+                    }
                     "f" => {
                         let v1 = line_iter.next().unwrap().parse::<usize>().unwrap();
                         let v2 = line_iter.next().unwrap().parse::<usize>().unwrap();
                         let v3 = line_iter.next().unwrap().parse::<usize>().unwrap();
 
-                        faces.push(Triangle { v1: v1 - 1, v2: v2 - 1, v3: v3 - 1 });
-                    },
-                    _ => {},
+                        faces.push(Triangle {
+                            v1: v1 - 1,
+                            v2: v2 - 1,
+                            v3: v3 - 1,
+                        });
+                    }
+                    _ => {}
                 };
             }
         }
@@ -57,14 +61,26 @@ impl Mesh {
         let mut min = Vector4::new(f32::INFINITY, f32::INFINITY, f32::INFINITY, 1.0);
 
         for vertex in &vertices {
-            if min.x > vertex.x { min.x = vertex.x };
-            if min.y > vertex.y { min.y = vertex.y };
-            if min.z > vertex.z { min.z = vertex.z };
+            if min.x > vertex.x {
+                min.x = vertex.x
+            };
+            if min.y > vertex.y {
+                min.y = vertex.y
+            };
+            if min.z > vertex.z {
+                min.z = vertex.z
+            };
 
-            if max.x < vertex.x { max.x = vertex.x };
-            if max.y < vertex.y { max.y = vertex.y };
-            if max.z < vertex.z { max.z = vertex.z };
-        } 
+            if max.x < vertex.x {
+                max.x = vertex.x
+            };
+            if max.y < vertex.y {
+                max.y = vertex.y
+            };
+            if max.z < vertex.z {
+                max.z = vertex.z
+            };
+        }
 
         Mesh {
             vertices: vertices,
@@ -96,21 +112,17 @@ impl Primitive for Mesh {
             let y = [p1.y - p0.y, p2.y - p0.y, op.y];
             let z = [p1.z - p0.z, p2.z - p0.z, op.z];
 
-            let d = Matrix3::new(x[0], x[1], x[2],
-                                 y[0], y[1], y[2],
-                                 z[0], z[1], z[2]).determinant();
+            let d =
+                Matrix3::new(x[0], x[1], x[2], y[0], y[1], y[2], z[0], z[1], z[2]).determinant();
 
-            let d1 = Matrix3::new(r[0], x[1], x[2],
-                                  r[1], y[1], y[2],
-                                  r[2], z[1], z[2]).determinant();
+            let d1 =
+                Matrix3::new(r[0], x[1], x[2], r[1], y[1], y[2], r[2], z[1], z[2]).determinant();
 
-            let d2 = Matrix3::new(x[0], r[0], x[2],
-                                  y[0], r[1], y[2],
-                                  z[0], r[2], z[2]).determinant();
-                        
-            let d3 = Matrix3::new(x[0], x[1], r[0],
-                                  y[0], y[1], r[1],
-                                  z[0], z[1], r[2]).determinant();
+            let d2 =
+                Matrix3::new(x[0], r[0], x[2], y[0], r[1], y[2], z[0], r[2], z[2]).determinant();
+
+            let d3 =
+                Matrix3::new(x[0], x[1], r[0], y[0], y[1], r[1], z[0], z[1], r[2]).determinant();
 
             let beta = d1 / d;
             let gamma = d2 / d;
@@ -136,7 +148,11 @@ impl Primitive for Mesh {
             n = transform.transpose() * n;
             n.w = 0.0;
 
-            Some(Hit { normal: n, intersect: t, uv: (0.0, 0.0) })
+            Some(Hit {
+                normal: n,
+                intersect: t,
+                uv: (0.0, 0.0),
+            })
         } else {
             None
         }

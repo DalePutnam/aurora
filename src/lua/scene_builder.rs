@@ -4,10 +4,10 @@ use std::fs::File;
 use std::io::Read;
 use Cube;
 use Light;
-use Phong;
 use Mesh;
 use NonhierBox;
 use NonhierSphere;
+use Phong;
 use Sphere;
 
 pub struct SceneBuilder {
@@ -164,9 +164,7 @@ impl SceneBuilder {
     ) -> rlua::Result<()> {
         let objects = match lua_scene_root {
             Value::UserData(user_data) => match user_data.borrow::<lua::SceneNode>() {
-                Ok(root_node) => {
-                    root_node.convert_to_object_list()
-                }
+                Ok(root_node) => root_node.convert_to_object_list(),
                 Err(error) => return Err(error),
             },
             _ => {

@@ -1,7 +1,7 @@
 use na::Matrix4;
-use {Material, Ray, Hit};
-use traits::Primitive;
 use std::sync::Arc;
+use traits::Primitive;
+use {Hit, Material, Ray};
 
 pub struct Object {
     _id: u64,
@@ -11,7 +11,12 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(id: u64, transform: &Matrix4<f32>, primitive: Arc<dyn Primitive>, material: Arc<Material>) -> Self {
+    pub fn new(
+        id: u64,
+        transform: &Matrix4<f32>,
+        primitive: Arc<dyn Primitive>,
+        material: Arc<Material>,
+    ) -> Self {
         Object {
             _id: id,
             transform: transform.try_inverse().unwrap(), // We need the world to model matrix here
@@ -26,5 +31,5 @@ impl Object {
         } else {
             None
         }
-   }
+    }
 }

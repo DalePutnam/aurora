@@ -1,14 +1,14 @@
-use na::{Vector4, Vector3, Matrix4};
-use {Ray, Hit};
-use util::math;
-use traits::Primitive;
+use na::{Matrix4, Vector3, Vector4};
 use std::f32;
-use std::sync::Arc;
 use std::ops::Deref;
+use std::sync::Arc;
+use traits::Primitive;
+use util::math;
+use {Hit, Ray};
 
 #[derive(Clone)]
 pub struct PrimitivePtr {
-    inner: Arc<dyn Primitive>
+    inner: Arc<dyn Primitive>,
 }
 
 impl Deref for PrimitivePtr {
@@ -22,7 +22,7 @@ impl Deref for PrimitivePtr {
 impl PrimitivePtr {
     pub fn new<T: Primitive + 'static>(primitive: T) -> Self {
         PrimitivePtr {
-            inner: Arc::new(primitive)
+            inner: Arc::new(primitive),
         }
     }
 }
@@ -59,7 +59,7 @@ impl Primitive for NonhierSphere {
                 if root_one < math::EPSILON && root_two < math::EPSILON {
                     None
                 } else {
-                    let t = if root_one <= root_two { 
+                    let t = if root_one <= root_two {
                         if root_one > math::EPSILON {
                             root_one
                         } else {
@@ -83,9 +83,13 @@ impl Primitive for NonhierSphere {
                     n = transform.transpose() * n;
                     n.w = 0.0;
 
-                    Some(Hit { normal: n, intersect: t, uv: (0.0, 0.0) })
+                    Some(Hit {
+                        normal: n,
+                        intersect: t,
+                        uv: (0.0, 0.0),
+                    })
                 }
-            },
+            }
         }
     }
 }
@@ -120,37 +124,43 @@ impl Primitive for NonhierBox {
                     let p1 = Vector4::<f32>::new(position.x + size, position.y, position.z, 1.0);
                     let p2 = Vector4::<f32>::new(position.x, position.y + size, position.z, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 1 => {
                     let p0 = Vector4::<f32>::new(position.x, position.y, position.z + size, 1.0);
-                    let p1 = Vector4::<f32>::new(position.x, position.y + size, position.z + size, 1.0);
-                    let p2 = Vector4::<f32>::new(position.x + size, position.y, position.z + size, 1.0);
+                    let p1 =
+                        Vector4::<f32>::new(position.x, position.y + size, position.z + size, 1.0);
+                    let p2 =
+                        Vector4::<f32>::new(position.x + size, position.y, position.z + size, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 2 => {
                     let p0 = Vector4::<f32>::new(position.x, position.y, position.z, 1.0);
                     let p1 = Vector4::<f32>::new(position.x, position.y + size, position.z, 1.0);
                     let p2 = Vector4::<f32>::new(position.x, position.y, position.z + size, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 3 => {
                     let p0 = Vector4::<f32>::new(position.x + size, position.y, position.z, 1.0);
-                    let p1 = Vector4::<f32>::new(position.x + size, position.y, position.z + size, 1.0);
-                    let p2 = Vector4::<f32>::new(position.x + size, position.y + size, position.z, 1.0);
+                    let p1 =
+                        Vector4::<f32>::new(position.x + size, position.y, position.z + size, 1.0);
+                    let p2 =
+                        Vector4::<f32>::new(position.x + size, position.y + size, position.z, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 4 => {
                     let p0 = Vector4::<f32>::new(position.x, position.y, position.z, 1.0);
                     let p1 = Vector4::<f32>::new(position.x, position.y, position.z + size, 1.0);
                     let p2 = Vector4::<f32>::new(position.x + size, position.y, position.z, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 5 => {
                     let p0 = Vector4::<f32>::new(position.x, position.y + size, position.z, 1.0);
-                    let p1 = Vector4::<f32>::new(position.x + size, position.y + size, position.z, 1.0);
-                    let p2 = Vector4::<f32>::new(position.x, position.y + size, position.z + size, 1.0);
+                    let p1 =
+                        Vector4::<f32>::new(position.x + size, position.y + size, position.z, 1.0);
+                    let p2 =
+                        Vector4::<f32>::new(position.x, position.y + size, position.z + size, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 _ => panic!("This should never happen"),
             };
 
@@ -160,7 +170,11 @@ impl Primitive for NonhierBox {
             let lb = (point - p0).dot(&nn);
             let nt = la / (la - lb);
 
-            let t = if let Some((_, t, _, _)) = hit_info { t } else { f32::INFINITY };
+            let t = if let Some((_, t, _, _)) = hit_info {
+                t
+            } else {
+                f32::INFINITY
+            };
 
             if nt < t && nt > math::EPSILON {
                 let pt = origin + (nt * (point - origin));
@@ -179,7 +193,7 @@ impl Primitive for NonhierBox {
 
                             hit_info = Some((nn, nt, u, v));
                         }
-                    },
+                    }
                     2 | 3 => {
                         let diff_z = pt.z - p0.z;
                         let diff_y = pt.y - p0.y;
@@ -193,7 +207,7 @@ impl Primitive for NonhierBox {
 
                             hit_info = Some((nn, nt, u, v));
                         }
-                    },
+                    }
                     4 | 5 => {
                         let diff_x = pt.x - p0.x;
                         let diff_z = pt.z - p0.z;
@@ -203,7 +217,7 @@ impl Primitive for NonhierBox {
 
                             hit_info = Some((nn, nt, u, v));
                         }
-                    },
+                    }
                     _ => panic!("This should never happen"),
                 };
             }
@@ -218,7 +232,11 @@ impl Primitive for NonhierBox {
             normal = transform.transpose() * normal;
             normal.w = 0.0;
 
-            Some(Hit { normal: normal, intersect: intersect, uv: (u, v) })
+            Some(Hit {
+                normal: normal,
+                intersect: intersect,
+                uv: (u, v),
+            })
         } else {
             None
         }
@@ -251,7 +269,7 @@ impl Primitive for Sphere {
                 if root_one < math::EPSILON && root_two < math::EPSILON {
                     None
                 } else {
-                    let t = if root_one <= root_two { 
+                    let t = if root_one <= root_two {
                         if root_one > math::EPSILON {
                             root_one
                         } else {
@@ -275,9 +293,13 @@ impl Primitive for Sphere {
                     n = transform.transpose() * n;
                     n.w = 0.0;
 
-                    Some(Hit { normal: n, intersect: t, uv: (0.0, 0.0) })
+                    Some(Hit {
+                        normal: n,
+                        intersect: t,
+                        uv: (0.0, 0.0),
+                    })
                 }
-            },
+            }
         }
     }
 }
@@ -304,37 +326,37 @@ impl Primitive for Cube {
                     let p1 = Vector4::<f32>::new(1.0, 0.0, 0.0, 1.0);
                     let p2 = Vector4::<f32>::new(0.0, 1.0, 0.0, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 1 => {
                     let p0 = Vector4::<f32>::new(0.0, 0.0, 1.0, 1.0);
                     let p1 = Vector4::<f32>::new(0.0, 1.0, 1.0, 1.0);
                     let p2 = Vector4::<f32>::new(1.0, 0.0, 1.0, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 2 => {
                     let p0 = Vector4::<f32>::new(0.0, 0.0, 0.0, 1.0);
                     let p1 = Vector4::<f32>::new(0.0, 1.0, 0.0, 1.0);
                     let p2 = Vector4::<f32>::new(0.0, 0.0, 1.0, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 3 => {
                     let p0 = Vector4::<f32>::new(1.0, 0.0, 0.0, 1.0);
                     let p1 = Vector4::<f32>::new(1.0, 0.0, 1.0, 1.0);
                     let p2 = Vector4::<f32>::new(1.0, 1.0, 0.0, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 4 => {
                     let p0 = Vector4::<f32>::new(0.0, 0.0, 0.0, 1.0);
                     let p1 = Vector4::<f32>::new(0.0, 0.0, 1.0, 1.0);
                     let p2 = Vector4::<f32>::new(1.0, 0.0, 0.0, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 5 => {
                     let p0 = Vector4::<f32>::new(0.0, 1.0, 0.0, 1.0);
                     let p1 = Vector4::<f32>::new(1.0, 1.0, 0.0, 1.0);
                     let p2 = Vector4::<f32>::new(0.0, 1.0, 1.0, 1.0);
                     (p0, p1, p2)
-                },
+                }
                 _ => panic!("This should never happen"),
             };
 
@@ -344,7 +366,11 @@ impl Primitive for Cube {
             let lb = (point - p0).dot(&nn);
             let nt = la / (la - lb);
 
-            let t = if let Some((_, t, _, _)) = hit_info { t } else { f32::INFINITY };
+            let t = if let Some((_, t, _, _)) = hit_info {
+                t
+            } else {
+                f32::INFINITY
+            };
 
             if nt < t && nt > math::EPSILON {
                 let pt = origin + (nt * (point - origin));
@@ -363,7 +389,7 @@ impl Primitive for Cube {
 
                             hit_info = Some((nn, nt, u, v));
                         }
-                    },
+                    }
                     2 | 3 => {
                         let diff_z = pt.z - p0.z;
                         let diff_y = pt.y - p0.y;
@@ -377,7 +403,7 @@ impl Primitive for Cube {
 
                             hit_info = Some((nn, nt, u, v));
                         }
-                    },
+                    }
                     4 | 5 => {
                         let diff_x = pt.x - p0.x;
                         let diff_z = pt.z - p0.z;
@@ -387,7 +413,7 @@ impl Primitive for Cube {
 
                             hit_info = Some((nn, nt, u, v));
                         }
-                    },
+                    }
                     _ => panic!("This should never happen"),
                 };
             }
@@ -402,7 +428,11 @@ impl Primitive for Cube {
             normal = transform.transpose() * normal;
             normal.w = 0.0;
 
-            Some(Hit { normal: normal, intersect: intersect, uv: (u, v) })
+            Some(Hit {
+                normal: normal,
+                intersect: intersect,
+                uv: (u, v),
+            })
         } else {
             None
         }
