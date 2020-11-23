@@ -1,32 +1,8 @@
 use na::{Matrix4, Vector3, Vector4};
 use std::f32;
-use std::ops::Deref;
-use std::sync::Arc;
 use traits::Primitive;
 use util::math;
 use {Hit, Ray};
-
-#[derive(Clone)]
-pub struct PrimitivePtr {
-    inner: Arc<dyn Primitive>,
-}
-
-impl Deref for PrimitivePtr {
-    type Target = Arc<dyn Primitive>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl PrimitivePtr {
-    pub fn new<T: Primitive + 'static>(primitive: T) -> Self {
-        PrimitivePtr {
-            inner: Arc::new(primitive),
-        }
-    }
-}
-
 pub struct NonhierSphere {
     position: Vector4<f32>,
     radius: f32,

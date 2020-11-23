@@ -14,7 +14,6 @@ pub use self::phong::Phong;
 pub use self::primitives::Cube;
 pub use self::primitives::NonhierBox;
 pub use self::primitives::NonhierSphere;
-pub use self::primitives::PrimitivePtr;
 pub use self::primitives::Sphere;
 pub use self::ray::Hit;
 pub use self::ray::Ray;
