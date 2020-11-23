@@ -29,15 +29,15 @@ impl CookTorrance {
         normal: &Vector4<f32>,
         light: &Light,
     ) -> Vector3<f32> {
-        if self.colour.x != 0.0 || self.colour.y != 0.0 || self.colour.z != 0.0 {
-            let light_vector = light.get_position() - contact_point;
-            let distance = light_vector.dot(&light_vector).sqrt();
-            let diffuse = light_vector.normalize().dot(&normal.normalize()).max(0.0) * self.diffuse;
-
-            light.attenuate(distance).component_mul(&self.colour) * diffuse
-        } else {
-            Vector3::new(0.0, 0.0, 0.0)
+        if self.diffuse < math::EPSILON {
+            return Vector3::new(0.0, 0.0, 0.0)
         }
+
+        let light_vector = light.get_position() - contact_point;
+        let distance = light_vector.dot(&light_vector).sqrt();
+        let diffuse = light_vector.normalize().dot(&normal.normalize()).max(0.0) * self.diffuse;
+
+        light.attenuate(distance).component_mul(&self.colour) * diffuse
     }
 
     fn calculate_specular(
@@ -47,6 +47,10 @@ impl CookTorrance {
         normal: &Vector4<f32>,
         light: &Light,
     ) -> Vector3<f32> {
+        if 1.0 - self.diffuse < math::EPSILON {
+            return Vector3::new(0.0, 0.0, 0.0)
+        }
+
         let light_vector = light.get_position() - contact_point;
         let distance = light_vector.dot(&light_vector).sqrt();
 
