@@ -1,4 +1,4 @@
-use na::{Vector4, U3};
+use na::{Vector4, Matrix4, U3};
 
 pub const EPSILON: f32 = 0.0001;
 pub const PI: f32 = 3.14159265;
@@ -16,6 +16,15 @@ pub fn cross_4d(a: &Vector4<f32>, b: &Vector4<f32>) -> Vector4<f32> {
     let c3 = a3.cross(&b3);
 
     c3.insert_row(3, 0.0)
+}
+
+pub fn local_to_world_normals(normal: &Vector4<f32>, transform: &Matrix4<f32>) -> Vector4<f32> {
+    let n3 = normal.fixed_rows::<U3>(0);
+    let t33 = transform.fixed_slice::<U3, U3>(0, 0);
+
+    let ln3 = t33.transpose() * n3;
+
+    ln3.insert_row(3, 0.0)
 }
 
 pub fn quadratic_roots(a: f32, b: f32, c: f32) -> QuadRoots {
