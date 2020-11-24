@@ -154,6 +154,19 @@ fn trace_worker(
 
         for x in frame_section.x..frame_section.x + frame_section.width {
             for y in frame_section.y..frame_section.y + frame_section.height {
+                // if (x != 300) || (y != 650) {
+                //     if let Err(_) = tx.send(PixelColour {
+                //         x: x,
+                //         y: y,
+                //         rgb: [0, 0, 0],
+                //     }) {
+                //         println!("Receiver closed unexpectedly! Thread {} exiting.", cpu);
+                //         break;
+                //     }
+
+                //     continue;
+                // }
+
                 let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
                 let ray = Ray {
                     point: pworld,
