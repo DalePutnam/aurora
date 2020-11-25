@@ -35,7 +35,7 @@ impl CookTorrance {
 
         let light_vector = light.get_position() - contact_point;
         let distance = light_vector.dot(&light_vector).sqrt();
-        let diffuse = light_vector.normalize().dot(&normal.normalize()).max(0.0) * self.diffuse;
+        let diffuse = f32::max(light_vector.normalize().dot(&normal.normalize()), 0.0) * self.diffuse;
 
         light.attenuate(distance).component_mul(&self.colour) * diffuse
     }

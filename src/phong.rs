@@ -58,7 +58,7 @@ impl Phong {
 
             let t = l.dot(&n) * 2.0;
             let r = n.map(|component| component * t) - l;
-            let factor = r.dot(&v).max(0.0).powf(self.shininess);
+            let factor = f32::max(r.dot(&v), 0.0).powf(self.shininess);
 
             light
                 .attenuate(distance)

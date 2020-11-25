@@ -5,12 +5,12 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use traits::Primitive;
 use util::math;
-use {BoundingBox, Hit, Ray};
+use Hit;
+use Ray;
 
 pub struct Mesh {
     vertices: Vec<Vector4<f32>>,
-    faces: Vec<Triangle>,
-    bounding_box: BoundingBox,
+    faces: Vec<Triangle>
 }
 
 struct Triangle {
@@ -57,45 +57,15 @@ impl Mesh {
             }
         }
 
-        let mut max = Vector4::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY, 1.0);
-        let mut min = Vector4::new(f32::INFINITY, f32::INFINITY, f32::INFINITY, 1.0);
-
-        for vertex in &vertices {
-            if min.x > vertex.x {
-                min.x = vertex.x
-            };
-            if min.y > vertex.y {
-                min.y = vertex.y
-            };
-            if min.z > vertex.z {
-                min.z = vertex.z
-            };
-
-            if max.x < vertex.x {
-                max.x = vertex.x
-            };
-            if max.y < vertex.y {
-                max.y = vertex.y
-            };
-            if max.z < vertex.z {
-                max.z = vertex.z
-            };
-        }
-
         Mesh {
             vertices: vertices,
-            faces: faces,
-            bounding_box: BoundingBox::new(&min, &max),
+            faces: faces
         }
     }
 }
 
 impl Primitive for Mesh {
     fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit> {
-        if !self.bounding_box.hit(ray, transform) {
-            return None;
-        }
-
         let point = transform * ray.point;
         let origin = transform * ray.origin;
         let op = origin - point;
@@ -156,5 +126,22 @@ impl Primitive for Mesh {
         } else {
             None
         }
+    }
+
+    fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>) {
+        let mut max = Vector4::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY, 1.0);
+        let mut min = Vector4::new(f32::INFINITY, f32::INFINITY, f32::INFINITY, 1.0);
+
+        for vertex in &self.vertices {
+            min.x = f32::min(min.x, vertex.x);
+            min.y = f32::min(min.y, vertex.y);
+            min.z = f32::min(min.z, vertex.z);
+
+            max.x = f32::max(max.x, vertex.x);
+            max.y = f32::max(max.y, vertex.y);
+            max.z = f32::max(max.z, vertex.z);
+        }
+
+        (min, max)
     }
 }
