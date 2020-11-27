@@ -55,6 +55,6 @@ cow2:scale(1.5, 1.5, 1.5)
 white_light = gr.light({-6.0, 100.0, 780.0}, {0.9, 0.9, 0.9}, {1, 0, 0})
 orange_light = gr.light({400.0, 100.0, 150.0}, {0.7, 0.0, 0.7}, {1, 0, 0})
 
-gr.render(scene_root, 'simple.png', 512, 512,
+gr.render(scene_root, 'simple.png', 1024, 1024,
 	  {0, 0, 800}, {0, 0, -800}, {0, 1, 0}, 50,
 	  {0.3, 0.3, 0.3}, {white_light})--, orange_light})
