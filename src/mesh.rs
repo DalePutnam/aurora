@@ -1,4 +1,4 @@
-use na::{Matrix3, Matrix4, Vector4};
+use na::{Matrix4, Vector4};
 use std::f32;
 use std::fs::File;
 use std::io::prelude::*;
@@ -68,62 +68,70 @@ impl Primitive for Mesh {
     fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit> {
         let point = transform * ray.point;
         let origin = transform * ray.origin;
-        let op = origin - point;
-
-        let mut hit_info: Option<(&Vector4<f32>, &Vector4<f32>, &Vector4<f32>, f32)> = None;
+        let vector = point - origin;
+        
+        let mut intersect = f32::INFINITY;
+        let mut normal = Vector4::new(0.0, 0.0, 0.0, 0.0);
 
         for face in &self.faces {
-            let p0 = &self.vertices[face.v1];
-            let p1 = &self.vertices[face.v2];
-            let p2 = &self.vertices[face.v3];
+            // Moller-Trombore intersection algorithm
 
-            let r = [origin.x - p0.x, origin.y - p0.y, origin.z - p0.z];
-            let x = [p1.x - p0.x, p2.x - p0.x, op.x];
-            let y = [p1.y - p0.y, p2.y - p0.y, op.y];
-            let z = [p1.z - p0.z, p2.z - p0.z, op.z];
+            let v1 = &self.vertices[face.v1];
+            let v2 = &self.vertices[face.v2];
+            let v3 = &self.vertices[face.v3];
 
-            let d =
-                Matrix3::new(x[0], x[1], x[2], y[0], y[1], y[2], z[0], z[1], z[2]).determinant();
+            let edge1 = v2 - v1;
+            let edge2 = v3 - v1;
+            
+            let h = math::cross_4d(&vector, &edge2);
+            let a = edge1.dot(&h);
 
-            let d1 =
-                Matrix3::new(r[0], x[1], x[2], r[1], y[1], y[2], r[2], z[1], z[2]).determinant();
+            if f32::abs(a) < math::EPSILON {
+                continue;
+            }
 
-            let d2 =
-                Matrix3::new(x[0], r[0], x[2], y[0], r[1], y[2], z[0], r[2], z[2]).determinant();
+            let f = 1.0 / a;
+            let s = origin - v1;
+            let u = f * s.dot(&h);
 
-            let d3 =
-                Matrix3::new(x[0], x[1], r[0], y[0], y[1], r[1], z[0], z[1], r[2]).determinant();
+            if u < 0.0 || u > 1.0 {
+                continue;
+            }
 
-            let beta = d1 / d;
-            let gamma = d2 / d;
-            let nt = d3 / d;
+            let q = math::cross_4d(&s, &edge1);
+            let v = f * vector.dot(&q);
 
-            if beta >= 0.0 && gamma >= 0.0 && beta + gamma <= 1.0 && nt > math::EPSILON {
-                if let Some((_, _, _, t)) = hit_info {
-                    if nt < t {
-                        hit_info = Some((p0, p1, p2, nt))
-                    }
-                } else {
-                    hit_info = Some((p0, p1, p2, nt))
-                }
+            if v < 0.0 || u + v > 1.0 {
+                continue;
+            }
+
+            let t = f * edge2.dot(&q);
+
+            if t < math::EPSILON {
+                continue;
+            }
+
+            if t < intersect {
+                intersect = t;
+                normal = math::cross_4d(&(v2 - v1), &(v3 - v1)).normalize();
             }
         }
 
-        if let Some((p0, p1, p2, t)) = hit_info {
-            let mut n = math::cross_4d(&(p1 - p0), &(p2 - p0));
-            if op.dot(&n) < 0.0 {
-                n = -n;
+        if intersect < f32::INFINITY {
+            if vector.dot(&normal) > 0.0 {
+                normal = -normal;
             }
 
-            n = transform.transpose() * n;
-            n.w = 0.0;
+            normal = math::local_to_world_normals(&normal, &transform);
 
             Some(Hit {
-                normal: n,
-                intersect: t,
-                uv: (0.0, 0.0),
+                normal: normal,
+                intersect: intersect,
+                uv: (0.0, 0.0)
             })
-        } else {
+        }
+        else
+        {
             None
         }
     }
