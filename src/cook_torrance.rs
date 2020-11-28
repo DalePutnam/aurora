@@ -1,6 +1,7 @@
 use na::{Vector3, Vector4};
 use traits::BSDF;
 use util::math;
+use std::f32;
 use Hit;
 use Light;
 use Ray;
@@ -118,7 +119,7 @@ fn ggx_distribution(half: &Vector4<f32>, normal: &Vector4<f32>, alpha: f32) -> f
     let hn = half.dot(&normal);
     let hn2 = hn.powi(2);
 
-    (chi(hn) * a2) / (math::PI * ((hn2 * a2) + (1.0 - hn2)).powi(2))
+    (chi(hn) * a2) / (f32::consts::PI * ((hn2 * a2) + (1.0 - hn2)).powi(2))
 }
 
 fn ggx_geometry(

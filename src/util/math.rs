@@ -1,7 +1,6 @@
 use na::{Vector4, Matrix4, U3};
 
 pub const EPSILON: f32 = 0.0001;
-pub const PI: f32 = 3.14159265;
 
 pub enum QuadRoots {
     Two(f32, f32),
@@ -40,7 +39,7 @@ pub fn quadratic_roots(a: f32, b: f32, c: f32) -> QuadRoots {
         if d < 0.0 {
             QuadRoots::Zero
         } else {
-            let sign_b = if b < 0.0 { -1.0 } else { 0.0 };
+            let sign_b = if b < 0.0 { -1.0 } else { 1.0 };
             let q = -(b + sign_b*d.sqrt()) / 2.0;
 
             let root_one = q / a;
