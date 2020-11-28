@@ -1,4 +1,4 @@
-use na::Vector4;
+use na::{Vector4, Matrix4};
 use std::f32;
 use util::math;
 use Ray;
@@ -16,12 +16,15 @@ impl BoundingBox {
         }
     }
 
-    pub fn hit(&self, ray: &Ray) -> bool {
-        let ray_direction = ray.point - ray.origin;
+    pub fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> bool {
+        let point = transform * ray.point;
+        let origin = transform * ray.origin;
+
+        let ray_direction = point - origin;
         let inv_direction = Vector4::repeat(1.0).component_div(&ray_direction);
     
-        let min = (self.lower_point.x - ray.origin.x) * inv_direction.x;
-        let max = (self.upper_point.x - ray.origin.x) * inv_direction.x;
+        let min = (self.lower_point.x - origin.x) * inv_direction.x;
+        let max = (self.upper_point.x - origin.x) * inv_direction.x;
     
         let (mut t_min, mut t_max) = if inv_direction.x >= 0.0 {
             (min, max)
@@ -29,8 +32,8 @@ impl BoundingBox {
             (max, min)
         };
     
-        let min = (self.lower_point.y - ray.origin.y) * inv_direction.y;
-        let max = (self.upper_point.y - ray.origin.y) * inv_direction.y;
+        let min = (self.lower_point.y - origin.y) * inv_direction.y;
+        let max = (self.upper_point.y - origin.y) * inv_direction.y;
     
         let (ty_min, ty_max) = if inv_direction.y >= 0.0 {
             (min, max)
@@ -50,8 +53,8 @@ impl BoundingBox {
             t_max = ty_max;
         }
     
-        let min = (self.lower_point.z - ray.origin.z) * inv_direction.z;
-        let max = (self.upper_point.z - ray.origin.z) * inv_direction.z;
+        let min = (self.lower_point.z - origin.z) * inv_direction.z;
+        let max = (self.upper_point.z - origin.z) * inv_direction.z;
     
         let (tz_min, tz_max) = if inv_direction.z >= 0.0 {
             (min, max)
