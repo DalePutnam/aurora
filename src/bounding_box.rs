@@ -16,6 +16,10 @@ impl BoundingBox {
         }
     }
 
+    pub fn get_extents(&self) -> (&Vector4<f32>, &Vector4<f32>) {
+        (&self.lower_point, &self.upper_point)
+    }
+
     pub fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> bool {
         let point = transform * ray.point;
         let origin = transform * ray.origin;

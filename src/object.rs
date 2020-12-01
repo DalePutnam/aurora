@@ -35,6 +35,14 @@ impl Object {
         }
     }
 
+    pub fn get_bounding_box(&self) -> &BoundingBox {
+        &self.bounding_box
+    }
+
+    pub fn get_transform(&self) -> &Matrix4<f32> {
+        &self.transform
+    }
+
     pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)> {
         if self.bounding_box.hit(ray, &self.transform) {
             if let Some(hit) = self.primitive.hit(ray, &self.transform) {

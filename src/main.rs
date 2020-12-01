@@ -32,6 +32,7 @@ pub mod ray;
 pub mod scene;
 pub mod traits;
 pub mod util;
+pub mod grid;
 
 use image::{png, ColorType, ImageBuffer, Pixel, Rgb};
 use lua::SceneBuilder;
