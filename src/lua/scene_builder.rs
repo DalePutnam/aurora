@@ -12,13 +12,13 @@ use Sphere;
 use CookTorrance;
 
 pub struct SceneBuilder {
-    lua: Lua,
+    lua: Lua
 }
 
 impl SceneBuilder {
-    pub fn new() -> Self {
+    pub fn new(pixel: Option<(u32, u32)>) -> Self {
         let mut lua = Lua::new();
-        SceneBuilder::initialize_environment(&mut lua);
+        SceneBuilder::initialize_environment(&mut lua, pixel);
 
         SceneBuilder { lua: lua }
     }
@@ -46,7 +46,7 @@ impl SceneBuilder {
         }
     }
 
-    fn initialize_environment(lua: &mut Lua) {
+    fn initialize_environment(lua: &mut Lua, pixel: Option<(u32, u32)>) {
         let result = lua.context(|lua_ctx| -> rlua::Result<()> {
             let globals = lua_ctx.globals();
             let gr = lua_ctx.create_table().expect("Failed to create gr table");
@@ -98,7 +98,7 @@ impl SceneBuilder {
             // Render function
             let render = lua_ctx
                 .create_function(
-                    |lua_ctx,
+                    move |lua_ctx,
                      (
                         lua_scene_root,
                         lua_output,
@@ -123,6 +123,7 @@ impl SceneBuilder {
                             lua_fov_y,
                             lua_ambient,
                             lua_lights,
+                            pixel
                         )
                     },
                 )
@@ -169,6 +170,7 @@ impl SceneBuilder {
         lua_fov_y: Value<'lua>,
         lua_ambient: Value<'lua>,
         lua_lights: Value<'lua>,
+        pixel: Option<(u32, u32)>
     ) -> rlua::Result<()> {
         let objects = match lua_scene_root {
             Value::UserData(user_data) => match user_data.borrow::<lua::SceneNode>() {
@@ -220,6 +222,7 @@ impl SceneBuilder {
             fov_y,
             na::Vector3::from(ambient),
             lights,
+            pixel
         );
 
         Ok(())

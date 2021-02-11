@@ -55,6 +55,7 @@ pub fn render(
     fov_y: f32,
     ambient: Vector3<f32>,
     lights: Vec<Light>,
+    pixel: Option<(u32, u32)>
 ) {
     println!("Aurora Ray Tracer");
     println!("Rendering to {}", output_name);
@@ -63,6 +64,11 @@ pub fn render(
     println!("Eye:  {{ x: {}, y: {}, z: {} }}", eye.x, eye.y, eye.z);
     println!("View: {{ x: {}, y: {}, z: {} }}", view.x, view.y, view.z);
     println!("Up:   {{ x: {}, y: {}, z: {} }}", up.x, up.y, up.z);
+
+    if let Some(p) = &pixel {
+        println!("Rendering single pixel: x: {} y: {}", p.0, p.1);
+    }
+
     println!(
         "Rendering {} objects with {} lights",
         objects.len(),
@@ -77,44 +83,52 @@ pub fn render(
 
     let scene = Arc::new(Scene::new(objects, lights, ambient));
 
-    let rx = {
-        let (tx, rx) = mpsc::channel();
+    let mut image = ImageBuffer::<Rgb<u8>, Vec<u8>>::from_pixel(output_width, output_height, *Rgb::from_slice(&[0, 0, 0]));
 
-        for cpu in 0..cpus {
-            let frame_sections = Arc::clone(&frame_sections);
-            let tx = mpsc::Sender::clone(&tx);
-            let scene = Arc::clone(&scene);
+    if let Some(p) = &pixel {
+        let (r, g, b) = trace_pixel(p.0, p.1, 0, &stw, &eye_4d, scene.as_ref());
+        image.put_pixel(p.0, p.1, *Rgb::from_slice(&[r, g, b]));
 
-            thread::spawn(move || {
-                trace_worker(cpu, stw, eye_4d, scene.as_ref(), frame_sections, tx);
-            });
-        }
 
-        rx
-    };
+    } else {
+        let rx = {
+            let (tx, rx) = mpsc::channel();
+    
+            for cpu in 0..cpus {
+                let frame_sections = Arc::clone(&frame_sections);
+                let tx = mpsc::Sender::clone(&tx);
+                let scene = Arc::clone(&scene);
+    
+                thread::spawn(move || {
+                    trace_worker(cpu, stw, eye_4d, scene.as_ref(), frame_sections, tx);
+                });
+            }
+    
+            rx
+        };    
 
-    let mut image = ImageBuffer::<Rgb<u8>, Vec<u8>>::new(output_width, output_height);
-    let total_pixels = output_width * output_height;
-    let mut received_pixels = 0;
+        let total_pixels = output_width * output_height;
+        let mut received_pixels = 0;
 
-    for pixel_colour in rx {
-        image.put_pixel(
-            pixel_colour.x,
-            pixel_colour.y,
-            *Rgb::from_slice(&pixel_colour.rgb),
-        );
-        received_pixels += 1;
-
-        if received_pixels % 1000 == 0 {
-            print!(
-                "Progress: {:.0}%\r",
-                (received_pixels as f32 / total_pixels as f32) * 100.0
+        for pixel_colour in rx {
+            image.put_pixel(
+                pixel_colour.x,
+                pixel_colour.y,
+                *Rgb::from_slice(&pixel_colour.rgb),
             );
+            received_pixels += 1;
+    
+            if received_pixels % 1000 == 0 {
+                print!(
+                    "Progress: {:.0}%\r",
+                    (received_pixels as f32 / total_pixels as f32) * 100.0
+                );
+            }
         }
+    
+        println!("Progress: 100%");
+        println!("Done");
     }
-
-    println!("Progress: 100%");
-    println!("Done");
 
     match File::create(&output_name) {
         Ok(file) => {
@@ -155,19 +169,7 @@ fn trace_worker(
 
         for x in frame_section.x..frame_section.x + frame_section.width {
             for y in frame_section.y..frame_section.y + frame_section.height {
-                let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
-                let ray = Ray {
-                    point: pworld,
-                    origin: eye,
-                    id: 0,
-                    thread_id: 0,
-                };
-
-                let colour = trace_pixel(&ray, &scene);
-
-                let r = (255.0 * colour.x.min(1.0)) as u8;
-                let g = (255.0 * colour.y.min(1.0)) as u8;
-                let b = (255.0 * colour.z.min(1.0)) as u8;
+                let (r, g, b) = trace_pixel(x, y, cpu, &stw, &eye, &scene);
 
                 if let Err(_) = tx.send(PixelColour {
                     x: x,
@@ -182,11 +184,25 @@ fn trace_worker(
     }
 }
 
-fn trace_pixel(ray: &Ray, scene: &Scene) -> Vector3<f32> {
-    match scene.check_hit(ray) {
+fn trace_pixel(x: u32, y: u32, cpu: usize, stw: &Matrix4<f32>, eye: &Vector4<f32>, scene: &Scene) -> (u8, u8, u8) {
+    let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
+    let ray = Ray {
+        point: pworld,
+        origin: *eye,
+        id: 0,
+        thread_id: 0,
+    };
+
+    let colour_vec = match scene.check_hit(&ray) {
         Some((hit, material)) => material.shade_pixel(&ray, &hit, scene),
         None => Vector3::new(0.0, 0.0, 0.0),
-    }
+    };
+
+    let r = (255.0 * colour_vec[0].min(1.0)) as u8;
+    let g = (255.0 * colour_vec[1].min(1.0)) as u8;
+    let b = (255.0 * colour_vec[2].min(1.0)) as u8;
+
+    (r, g, b)
 }
 
 fn create_screen_to_world_matrix(
@@ -296,7 +312,17 @@ fn main() {
         println!("No input file specified, exiting.");
     } else {
         let input_file = &args[1];
-        let scene_builder = SceneBuilder::new();
+
+        let pixel = if args.len() == 3 {
+            let pixel_text = &args[2];
+            let pixel_array: Vec<u32> = pixel_text.split(',').into_iter().map(|s| { s.parse::<u32>().unwrap() }).collect();
+
+            Some((pixel_array[0], pixel_array[1]))
+        } else {
+            None
+        };
+
+        let scene_builder = SceneBuilder::new(pixel);
 
         match scene_builder.run_build_script(input_file) {
             Ok(_) => (),
