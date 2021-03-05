@@ -18,6 +18,7 @@ pub use self::primitives::Sphere;
 pub use self::ray::Hit;
 pub use self::ray::Ray;
 pub use self::scene::Scene;
+pub use self::grid::Grid;
 
 pub mod bounding_box;
 pub mod cook_torrance;

@@ -51,7 +51,7 @@ impl SceneNode {
 
         if let Some(primitive) = node.primitive.clone() {
             if let Some(material) = node.material.clone() {
-                list.push(Object::new(id, &new_transform, primitive, material));
+                list.push(Object::new(node._name.clone(), id, &new_transform, primitive, material));
             }
         }
 

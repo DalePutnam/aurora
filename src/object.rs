@@ -8,6 +8,7 @@ use Material;
 use Ray;
 
 pub struct Object {
+    _name: String,
     _id: u64,
     transform: Matrix4<f32>,
     bounding_box: Box<BoundingBox>,
@@ -17,6 +18,7 @@ pub struct Object {
 
 impl Object {
     pub fn new(
+        name: String,
         id: u64,
         transform: &Matrix4<f32>,
         primitive: Arc<dyn Primitive>,
@@ -27,12 +29,17 @@ impl Object {
         let bounding_box = BoundingBox::new(&min, &max);
 
         Object {
+            _name: name,
             _id: id,
             bounding_box: Box::new(bounding_box),
             transform: transform.try_inverse().unwrap(), // We need the world to model matrix here
             primitive: primitive,
             material: material,
         }
+    }
+
+    pub fn get_name(&self) -> &String {
+        &self._name
     }
 
     pub fn get_bounding_box(&self) -> &BoundingBox {
