@@ -17,7 +17,7 @@ pub fn cross_4d(a: &Vector4<f32>, b: &Vector4<f32>) -> Vector4<f32> {
     c3.insert_row(3, 0.0)
 }
 
-pub fn local_to_world_normals(normal: &Vector4<f32>, transform: &Matrix4<f32>) -> Vector4<f32> {
+pub fn transform_normals(normal: &Vector4<f32>, transform: &Matrix4<f32>) -> Vector4<f32> {
     let n3 = normal.fixed_rows::<U3>(0);
     let t33 = transform.fixed_slice::<U3, U3>(0, 0);
 

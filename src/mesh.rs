@@ -122,7 +122,7 @@ impl Primitive for Mesh {
                 normal = -normal;
             }
 
-            normal = math::local_to_world_normals(&normal, &transform);
+            normal = math::transform_normals(&normal, &transform);
 
             Some(Hit {
                 normal: normal,

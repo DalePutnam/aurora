@@ -94,7 +94,7 @@ fn sphere_intersect(
                     n = -n;
                 }
 
-                n = math::local_to_world_normals(&n, &transform);
+                n = math::transform_normals(&n, &transform);
 
                 Some(Hit {
                     normal: n,
@@ -244,7 +244,7 @@ fn box_intersect(
         Faces::Back => Vector4::new(0.0, 0.0, -1.0, 0.0),
     };
 
-    let world_normal = math::local_to_world_normals(&local_normal, &transform);
+    let world_normal = math::transform_normals(&local_normal, &transform);
 
     // TODO: UV value calculation
 

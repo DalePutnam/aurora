@@ -1,4 +1,4 @@
-use na::{Vector3, Vector4, U3, Matrix4};
+use na::{Matrix4, Vector3, Vector4, U3};
 use util::math;
 use Hit;
 use Material;
@@ -72,18 +72,19 @@ impl Grid {
             num_cells.z as f32 * grid_cell_size,
         );
 
-        // let grid_size_scalar = f32::max(grid_max.x - grid_min.x, f32::max(grid_max.y - grid_min.y, grid_max.z - grid_min.z));
-
-        // let num_cells = Vector3::new(200, 200, 200);
-        // // let num_cells = Vector3::new(10, 10, 10);
-
-        // let grid_size = Vector3::new(grid_size_scalar, grid_size_scalar, grid_size_scalar);
-        // let grid_cell_size = grid_size_scalar / num_cells.x as f32;
-
-        println!("Grid initialized at location {},{},{}", grid_min.x, grid_min.y, grid_min.z);
-        println!("with side lengths {},{},{}", grid_size.x, grid_size.y, grid_size.z);
+        println!(
+            "Grid initialized at location {},{},{}",
+            grid_min.x, grid_min.y, grid_min.z
+        );
+        println!(
+            "with side lengths {},{},{}",
+            grid_size.x, grid_size.y, grid_size.z
+        );
         println!("and cell size {}", grid_cell_size);
-        println!("for {},{},{} cells in the x,y,z directions", num_cells.x, num_cells.y, num_cells.z);
+        println!(
+            "for {},{},{} cells in the x,y,z directions",
+            num_cells.x, num_cells.y, num_cells.z
+        );
 
         let mut grid = Grid {
             position: grid_min,
@@ -105,7 +106,7 @@ impl Grid {
                         );
 
                     grid.cells
-                        .push(GridCell::new(&position, grid_cell_size, &grid.objects, x, y, z));
+                        .push(GridCell::new(&position, grid_cell_size, &grid.objects));
                 }
             }
         }
@@ -209,7 +210,8 @@ impl Grid {
         }
 
         let mut cell = self.cell_at(X as usize, Y as usize, Z as usize);
-        let cell_position = (Vector3::new(X as f32, Y as f32, Z as f32) * self.cell_size) + self.position;
+        let cell_position =
+            (Vector3::new(X as f32, Y as f32, Z as f32) * self.cell_size) + self.position;
 
         let o = ray.origin.fixed_rows::<U3>(0);
         let p = ray.point.fixed_rows::<U3>(0);
@@ -299,7 +301,11 @@ impl Grid {
         let t_delta_z = f32::abs(t_max_z - (la / (la - lb)));
 
         let mut found_hit = false;
-        let mut hit = Hit {intersect: f32::INFINITY, normal: Vector4::repeat(0.0), uv: (0.0, 0.0) };
+        let mut hit = Hit {
+            intersect: f32::INFINITY,
+            normal: Vector4::repeat(0.0),
+            uv: (0.0, 0.0),
+        };
         let mut material = None;
 
         loop {
@@ -320,24 +326,32 @@ impl Grid {
             if t_max_x < t_max_y {
                 if t_max_x < t_max_z {
                     X += step_x;
-                    if X == just_out_x { break };
+                    if X == just_out_x {
+                        break;
+                    };
 
                     t_max_x += t_delta_x;
                 } else {
                     Z += step_z;
-                    if Z == just_out_z { break };
+                    if Z == just_out_z {
+                        break;
+                    };
 
                     t_max_z += t_delta_z;
                 }
             } else {
                 if t_max_y < t_max_z {
                     Y += step_y;
-                    if Y == just_out_y { break };
+                    if Y == just_out_y {
+                        break;
+                    };
 
                     t_max_y += t_delta_y;
                 } else {
                     Z += step_z;
-                    if Z == just_out_z { break };
+                    if Z == just_out_z {
+                        break;
+                    };
 
                     t_max_z += t_delta_z;
                 }
@@ -421,7 +435,6 @@ impl Grid {
     }
 
     fn cell_at(&self, x: usize, y: usize, z: usize) -> &GridCell {
-        //println!("Accessing cell at {},{},{}", x, y, z);
         &self.cells[x + (y * self.num_cells.x) + (z * self.num_cells.x * self.num_cells.y)]
     }
 }
@@ -431,23 +444,28 @@ struct GridCell {
 }
 
 impl GridCell {
-    pub fn new(position: &Vector3<f32>, size: f32, objects: &Vec<Object>, x: usize, y: usize, z: usize) -> Self {
+    pub fn new(position: &Vector3<f32>, size: f32, objects: &Vec<Object>) -> Self {
         let mut cell = GridCell {
             objects: Vec::new(),
         };
-
-        //println!("Populating cell {},{},{}, at position {},{},{} with size {}", x, y, z, position.x, position.y, position.z, size);
 
         objects.iter().enumerate().for_each(|(i, object)| {
             let planes = get_grid_planes(position, size, &object.get_transform());
             let polygons = get_bbox_polygons(object);
 
+            // First clip the object bounding box to the grid cell
+            // This will find all objects that are within or that intersect a grid cell
+            // except for bounding boxes that completely contain a grid cell
             if check_polygons_in_cell(&planes, &polygons) {
                 cell.objects.push(i);
             } else {
                 let bbox_planes = get_bbox_planes(object);
-                let points = get_grid_points(position, size);
+                let points = get_grid_points(position, size, &object.get_transform());
 
+                // If the first check did not find that the object intersected the
+                // grid cell we know check if the object bounding box contains any
+                // of the corners of the grid cell. This will catch the one
+                // case that the above check misses.
                 if check_points_in_box(&bbox_planes, &points) {
                     cell.objects.push(i);
                 }
@@ -457,9 +475,17 @@ impl GridCell {
         cell
     }
 
-    pub fn check_hit<'a>(&self, ray: &Ray, objects: &'a Vec<Object>) -> Option<(Hit, &'a Material)> {
+    pub fn check_hit<'a>(
+        &self,
+        ray: &Ray,
+        objects: &'a Vec<Object>,
+    ) -> Option<(Hit, &'a Material)> {
         let mut found_hit = false;
-        let mut hit = Hit {intersect: f32::INFINITY, normal: Vector4::repeat(0.0), uv: (0.0, 0.0) };
+        let mut hit = Hit {
+            intersect: f32::INFINITY,
+            normal: Vector4::repeat(0.0),
+            uv: (0.0, 0.0),
+        };
         let mut material = None;
 
         for i in &self.objects {
@@ -475,7 +501,7 @@ impl GridCell {
         }
 
         if found_hit {
-            Some((hit, material.unwrap()))    
+            Some((hit, material.unwrap()))
         } else {
             None
         }
@@ -560,100 +586,89 @@ fn check_points_in_box(
     })
 }
 
-fn get_grid_planes(position: &Vector3<f32>, size: f32, transform: &Matrix4<f32>) -> [(Vector4<f32>, Vector4<f32>); 6] {
-    let lower = position.insert_row(3, 1.0);
-    let upper = position.add_scalar(size).insert_row(3, 1.0);
+fn get_grid_planes(
+    position: &Vector3<f32>,
+    size: f32,
+    transform: &Matrix4<f32>,
+) -> [(Vector4<f32>, Vector4<f32>); 6] {
+    let lower = transform * position.insert_row(3, 1.0);
+    let upper = transform * position.add_scalar(size).insert_row(3, 1.0);
 
-    // [
-    //     (lower, Vector4::new(1.0, 0.0, 0.0, 0.0)),
-    //     (lower, Vector4::new(0.0, 1.0, 0.0, 0.0)),
-    //     (lower, Vector4::new(0.0, 0.0, 1.0, 0.0)),
-    //     (upper, Vector4::new(-1.0, 0.0, 0.0, 0.0)),
-    //     (upper, Vector4::new(0.0, -1.0, 0.0, 0.0)),
-    //     (upper, Vector4::new(0.0, 0.0, -1.0, 0.0)),
-    // ]
-
-    let inv_trans = transform.try_inverse().unwrap();
-
-    let l = transform * lower;
-    let u = transform * upper;
+    let inverse_transform = transform.try_inverse().unwrap();
 
     [
-        (l, math::local_to_world_normals(&Vector4::new(1.0, 0.0, 0.0, 0.0), &inv_trans)),
-        (l, math::local_to_world_normals(&Vector4::new(0.0, 1.0, 0.0, 0.0), &inv_trans)),
-        (l, math::local_to_world_normals(&Vector4::new(0.0, 0.0, 1.0, 0.0), &inv_trans)),
-        (u, math::local_to_world_normals(&Vector4::new(-1.0, 0.0, 0.0, 0.0), &inv_trans)),
-        (u, math::local_to_world_normals(&Vector4::new(0.0, -1.0, 0.0, 0.0), &inv_trans)),
-        (u, math::local_to_world_normals(&Vector4::new(0.0, 0.0, -1.0, 0.0), &inv_trans)),
+        (
+            lower,
+            math::transform_normals(&Vector4::new(1.0, 0.0, 0.0, 0.0), &inverse_transform),
+        ),
+        (
+            lower,
+            math::transform_normals(&Vector4::new(0.0, 1.0, 0.0, 0.0), &inverse_transform),
+        ),
+        (
+            lower,
+            math::transform_normals(&Vector4::new(0.0, 0.0, 1.0, 0.0), &inverse_transform),
+        ),
+        (
+            upper,
+            math::transform_normals(&Vector4::new(-1.0, 0.0, 0.0, 0.0), &inverse_transform),
+        ),
+        (
+            upper,
+            math::transform_normals(&Vector4::new(0.0, -1.0, 0.0, 0.0), &inverse_transform),
+        ),
+        (
+            upper,
+            math::transform_normals(&Vector4::new(0.0, 0.0, -1.0, 0.0), &inverse_transform),
+        ),
     ]
 }
 
-fn get_grid_points(position: &Vector3<f32>, size: f32) -> [Vector4<f32>; 8] {
+fn get_grid_points(
+    position: &Vector3<f32>,
+    size: f32,
+    transform: &Matrix4<f32>,
+) -> [Vector4<f32>; 8] {
     let lower = position.insert_row(3, 0.0);
     let upper = lower.add_scalar(size);
 
     [
-        lower,                                        // Left-Bottom-Back
-        Vector4::new(upper.x, lower.y, lower.z, 1.0), // Right-Bottom-Back
-        Vector4::new(upper.x, upper.y, lower.z, 1.0), // Right-Top-Back
-        Vector4::new(lower.x, upper.y, lower.z, 1.0), // Left-Top-Back
-        Vector4::new(lower.x, upper.y, upper.z, 1.0), // Left-Top-Front
-        Vector4::new(lower.x, lower.y, upper.z, 1.0), // Left-Bottom-Front
-        Vector4::new(upper.x, lower.y, upper.z, 1.0), // Right-Bottom-Front
-        upper,                                        // Right-Top-Front
+        transform * lower,                                        // Left-Bottom-Back
+        transform * Vector4::new(upper.x, lower.y, lower.z, 1.0), // Right-Bottom-Back
+        transform * Vector4::new(upper.x, upper.y, lower.z, 1.0), // Right-Top-Back
+        transform * Vector4::new(lower.x, upper.y, lower.z, 1.0), // Left-Top-Back
+        transform * Vector4::new(lower.x, upper.y, upper.z, 1.0), // Left-Top-Front
+        transform * Vector4::new(lower.x, lower.y, upper.z, 1.0), // Left-Bottom-Front
+        transform * Vector4::new(upper.x, lower.y, upper.z, 1.0), // Right-Bottom-Front
+        transform * upper,                                        // Right-Top-Front
     ]
 }
 
 fn get_bbox_planes(obj: &Object) -> [(Vector4<f32>, Vector4<f32>); 6] {
     let (lower, upper) = obj.get_bounding_box().get_extents();
 
-    let inv_trans = obj.get_transform().try_inverse().unwrap();
-
-    let lower_world = inv_trans * lower;
-    let upper_world = inv_trans * upper;
-
     [
-        (
-            lower_world,
-            math::local_to_world_normals(&Vector4::new(1.0, 0.0, 0.0, 0.0), obj.get_transform()),
-        ),
-        (
-            lower_world,
-            math::local_to_world_normals(&Vector4::new(0.0, 1.0, 0.0, 0.0), obj.get_transform()),
-        ),
-        (
-            lower_world,
-            math::local_to_world_normals(&Vector4::new(0.0, 0.0, 1.0, 0.0), obj.get_transform()),
-        ),
-        (
-            upper_world,
-            math::local_to_world_normals(&Vector4::new(-1.0, 0.0, 0.0, 0.0), obj.get_transform()),
-        ),
-        (
-            upper_world,
-            math::local_to_world_normals(&Vector4::new(0.0, -1.0, 0.0, 0.0), obj.get_transform()),
-        ),
-        (
-            upper_world,
-            math::local_to_world_normals(&Vector4::new(0.0, 0.0, -1.0, 0.0), obj.get_transform()),
-        ),
+        (*lower, Vector4::new(1.0, 0.0, 0.0, 0.0)),
+        (*lower, Vector4::new(0.0, 1.0, 0.0, 0.0)),
+        (*lower, Vector4::new(0.0, 0.0, 1.0, 0.0)),
+        (*upper, Vector4::new(-1.0, 0.0, 0.0, 0.0)),
+        (*upper, Vector4::new(0.0, -1.0, 0.0, 0.0)),
+        (*upper, Vector4::new(0.0, 0.0, -1.0, 0.0)),
     ]
 }
 
 fn get_bbox_polygons(obj: &Object) -> [[Vector4<f32>; 4]; 6] {
     let (lower, upper) = obj.get_bounding_box().get_extents();
 
-    // let inv_trans = obj.get_transform().try_inverse().unwrap();
-
     let points = [
-        /* inv_trans * */ *lower, // Left-Bottom-Back 0
-        /* inv_trans * */ Vector4::new(upper.x, lower.y, lower.z, 1.0), // Right-Bottom-Back 1
-        /* inv_trans * */ Vector4::new(upper.x, upper.y, lower.z, 1.0), // Right-Top-Back 2
-        /* inv_trans * */ Vector4::new(lower.x, upper.y, lower.z, 1.0), // Left-Top-Back 3
-        /* inv_trans * */ Vector4::new(lower.x, upper.y, upper.z, 1.0), // Left-Top-Front 4
-        /* inv_trans * */ Vector4::new(lower.x, lower.y, upper.z, 1.0), // Left-Bottom-Front 5
-        /* inv_trans * */ Vector4::new(upper.x, lower.y, upper.z, 1.0), // Right-Bottom-Front 6
-        /* inv_trans * */ *upper, // Right-Top-Front 7
+        *lower,                                       // Left-Bottom-Back 0
+        Vector4::new(upper.x, lower.y, lower.z, 1.0), // Right-Bottom-Back 1
+        Vector4::new(upper.x, upper.y, lower.z, 1.0), // Right-Top-Back 2
+        Vector4::new(lower.x, upper.y, lower.z, 1.0), // Left-Top-Back 3
+        Vector4::new(lower.x, upper.y, upper.z, 1.0), // Left-Top-Front 4
+        Vector4::new(lower.x, lower.y, upper.z, 1.0), // Left-Bottom-Front 5
+        Vector4::new(upper.x, lower.y, upper.z, 1.0), // Right-Bottom-Front 6
+        *upper,                                       // Right-Top-Front 7
     ];
 
     [
@@ -673,23 +688,41 @@ mod tests {
     #[test]
     fn polygon_clip_fully_contained() {
         let planes = [
-            (Vector4::new(-10.0, 0.0, 0.0, 1.0), Vector4::new(1.0, 0.0, 0.0, 1.0)),
-            (Vector4::new(10., 0.0, 0.0, 1.0), Vector4::new(-1.0, 0.0, 0.0, 1.0)),
-            (Vector4::new(0.0, -10.0, 0.0, 1.0), Vector4::new(0.0, 1.0, 0.0, 1.0)),
-            (Vector4::new(0.0, 10.0, 0.0, 1.0), Vector4::new(0.0, -1.0, 0.0, 1.0)),
-            (Vector4::new(0.0, 0.0, -10.0, 1.0), Vector4::new(0.0, 0.0, 1.0, 1.0)),
-            (Vector4::new(0.0, 0.0, 10.0, 1.0), Vector4::new(0.0, 0.0, -1.0, 1.0))
+            (
+                Vector4::new(-10.0, 0.0, 0.0, 1.0),
+                Vector4::new(1.0, 0.0, 0.0, 1.0),
+            ),
+            (
+                Vector4::new(10., 0.0, 0.0, 1.0),
+                Vector4::new(-1.0, 0.0, 0.0, 1.0),
+            ),
+            (
+                Vector4::new(0.0, -10.0, 0.0, 1.0),
+                Vector4::new(0.0, 1.0, 0.0, 1.0),
+            ),
+            (
+                Vector4::new(0.0, 10.0, 0.0, 1.0),
+                Vector4::new(0.0, -1.0, 0.0, 1.0),
+            ),
+            (
+                Vector4::new(0.0, 0.0, -10.0, 1.0),
+                Vector4::new(0.0, 0.0, 1.0, 1.0),
+            ),
+            (
+                Vector4::new(0.0, 0.0, 10.0, 1.0),
+                Vector4::new(0.0, 0.0, -1.0, 1.0),
+            ),
         ];
 
         let points = [
             Vector4::new(-1.0, -1.0, -1.0, 1.0), // Left-Bottom-Back 0
-            Vector4::new(1.0, -1.0, -1.0, 1.0), // Right-Bottom-Back 1
-            Vector4::new(1.0, 1.0, -1.0, 1.0), // Right-Top-Back 2
-            Vector4::new(-1.0, 1.0, -1.0, 1.0), // Left-Top-Back 3
-            Vector4::new(-1.0, 1.0, 1.0, 1.0), // Left-Top-Front 4
-            Vector4::new(-1.0, -1.0, 1.0, 1.0), // Left-Bottom-Front 5
-            Vector4::new(1.0, -1.0, 1.0, 1.0), // Right-Bottom-Front 6
-            Vector4::new(1.0, 1.0, 1.0, 1.0), // Right-Top-Front 7
+            Vector4::new(1.0, -1.0, -1.0, 1.0),  // Right-Bottom-Back 1
+            Vector4::new(1.0, 1.0, -1.0, 1.0),   // Right-Top-Back 2
+            Vector4::new(-1.0, 1.0, -1.0, 1.0),  // Left-Top-Back 3
+            Vector4::new(-1.0, 1.0, 1.0, 1.0),   // Left-Top-Front 4
+            Vector4::new(-1.0, -1.0, 1.0, 1.0),  // Left-Bottom-Front 5
+            Vector4::new(1.0, -1.0, 1.0, 1.0),   // Right-Bottom-Front 6
+            Vector4::new(1.0, 1.0, 1.0, 1.0),    // Right-Top-Front 7
         ];
 
         let polygons = [
@@ -708,23 +741,41 @@ mod tests {
     #[test]
     fn polygon_clip_fully_contained2() {
         let planes = [
-            (Vector4::new(-1.0, 0.0, 0.0, 1.0), Vector4::new(1.0, 0.0, 0.0, 1.0)),
-            (Vector4::new(1., 0.0, 0.0, 1.0), Vector4::new(-1.0, 0.0, 0.0, 1.0)),
-            (Vector4::new(0.0, -1.0, 0.0, 1.0), Vector4::new(0.0, 1.0, 0.0, 1.0)),
-            (Vector4::new(0.0, 1.0, 0.0, 1.0), Vector4::new(0.0, -1.0, 0.0, 1.0)),
-            (Vector4::new(0.0, 0.0, -1.0, 1.0), Vector4::new(0.0, 0.0, 1.0, 1.0)),
-            (Vector4::new(0.0, 0.0, 1.0, 1.0), Vector4::new(0.0, 0.0, -1.0, 1.0))
+            (
+                Vector4::new(-1.0, 0.0, 0.0, 1.0),
+                Vector4::new(1.0, 0.0, 0.0, 1.0),
+            ),
+            (
+                Vector4::new(1., 0.0, 0.0, 1.0),
+                Vector4::new(-1.0, 0.0, 0.0, 1.0),
+            ),
+            (
+                Vector4::new(0.0, -1.0, 0.0, 1.0),
+                Vector4::new(0.0, 1.0, 0.0, 1.0),
+            ),
+            (
+                Vector4::new(0.0, 1.0, 0.0, 1.0),
+                Vector4::new(0.0, -1.0, 0.0, 1.0),
+            ),
+            (
+                Vector4::new(0.0, 0.0, -1.0, 1.0),
+                Vector4::new(0.0, 0.0, 1.0, 1.0),
+            ),
+            (
+                Vector4::new(0.0, 0.0, 1.0, 1.0),
+                Vector4::new(0.0, 0.0, -1.0, 1.0),
+            ),
         ];
 
         let points = [
             Vector4::new(-10.0, -10.0, -10.0, 1.0), // Left-Bottom-Back 0
-            Vector4::new(10.0, -10.0, -10.0, 1.0), // Right-Bottom-Back 1
-            Vector4::new(10.0, 10.0, -10.0, 1.0), // Right-Top-Back 2
-            Vector4::new(-10.0, 10.0, -10.0, 1.0), // Left-Top-Back 3
-            Vector4::new(-10.0, 10.0, 10.0, 1.0), // Left-Top-Front 4
-            Vector4::new(-10.0, -10.0, 10.0, 1.0), // Left-Bottom-Front 5
-            Vector4::new(10.0, -10.0, 10.0, 1.0), // Right-Bottom-Front 6
-            Vector4::new(10.0, 10.0, 10.0, 1.0), // Right-Top-Front 7
+            Vector4::new(10.0, -10.0, -10.0, 1.0),  // Right-Bottom-Back 1
+            Vector4::new(10.0, 10.0, -10.0, 1.0),   // Right-Top-Back 2
+            Vector4::new(-10.0, 10.0, -10.0, 1.0),  // Left-Top-Back 3
+            Vector4::new(-10.0, 10.0, 10.0, 1.0),   // Left-Top-Front 4
+            Vector4::new(-10.0, -10.0, 10.0, 1.0),  // Left-Bottom-Front 5
+            Vector4::new(10.0, -10.0, 10.0, 1.0),   // Right-Bottom-Front 6
+            Vector4::new(10.0, 10.0, 10.0, 1.0),    // Right-Top-Front 7
         ];
 
         let polygons = [
