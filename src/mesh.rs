@@ -1,158 +1,165 @@
-use na::{Matrix4, Vector4};
 use std::f32;
+use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
+
+use na::Matrix4;
+use na::Vector4;
 use traits::Primitive;
 use util::math;
 use Hit;
 use Ray;
-use std::fmt;
 
 #[derive(fmt::Debug)]
-pub struct Mesh {
-    vertices: Vec<Vector4<f32>>,
-    faces: Vec<Triangle>
+pub struct Mesh
+{
+	vertices: Vec<Vector4<f32>>,
+	faces: Vec<Triangle>,
 }
 
 #[derive(fmt::Debug)]
-struct Triangle {
-    pub v1: usize,
-    pub v2: usize,
-    pub v3: usize,
+struct Triangle
+{
+	pub v1: usize,
+	pub v2: usize,
+	pub v3: usize,
 }
 
-impl Mesh {
-    pub fn new(file_name: &String) -> Self {
-        let obj_file = File::open(file_name).unwrap();
-        let reader = BufReader::new(obj_file);
+impl Mesh
+{
+	pub fn new(file_name: &String) -> Self
+	{
+		let obj_file = File::open(file_name).unwrap();
+		let reader = BufReader::new(obj_file);
 
-        let mut vertices = Vec::new();
-        let mut faces = Vec::new();
+		let mut vertices = Vec::new();
+		let mut faces = Vec::new();
 
-        for line in reader.lines() {
-            let line = line.unwrap();
+		for line in reader.lines() {
+			let line = line.unwrap();
 
-            let mut line_iter = line.split_whitespace();
+			let mut line_iter = line.split_whitespace();
 
-            if let Some(data_type) = line_iter.next() {
-                match data_type {
-                    "v" => {
-                        let x = line_iter.next().unwrap().parse::<f32>().unwrap();
-                        let y = line_iter.next().unwrap().parse::<f32>().unwrap();
-                        let z = line_iter.next().unwrap().parse::<f32>().unwrap();
+			if let Some(data_type) = line_iter.next() {
+				match data_type {
+					"v" => {
+						let x = line_iter.next().unwrap().parse::<f32>().unwrap();
+						let y = line_iter.next().unwrap().parse::<f32>().unwrap();
+						let z = line_iter.next().unwrap().parse::<f32>().unwrap();
 
-                        vertices.push(Vector4::new(x, y, z, 1.0));
-                    }
-                    "f" => {
-                        let v1 = line_iter.next().unwrap().parse::<usize>().unwrap();
-                        let v2 = line_iter.next().unwrap().parse::<usize>().unwrap();
-                        let v3 = line_iter.next().unwrap().parse::<usize>().unwrap();
+						vertices.push(Vector4::new(x, y, z, 1.0));
+					}
+					"f" => {
+						let v1 = line_iter.next().unwrap().parse::<usize>().unwrap();
+						let v2 = line_iter.next().unwrap().parse::<usize>().unwrap();
+						let v3 = line_iter.next().unwrap().parse::<usize>().unwrap();
 
-                        faces.push(Triangle {
-                            v1: v1 - 1,
-                            v2: v2 - 1,
-                            v3: v3 - 1,
-                        });
-                    }
-                    _ => {}
-                };
-            }
-        }
+						faces.push(Triangle {
+							v1: v1 - 1,
+							v2: v2 - 1,
+							v3: v3 - 1,
+						});
+					}
+					_ => {}
+				};
+			}
+		}
 
-        Mesh {
-            vertices: vertices,
-            faces: faces
-        }
-    }
+		Mesh {
+			vertices: vertices,
+			faces: faces,
+		}
+	}
 }
 
-impl Primitive for Mesh {
-    fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit> {
-        let point = transform * ray.point;
-        let origin = transform * ray.origin;
-        let vector = point - origin;
-        
-        let mut intersect = f32::INFINITY;
-        let mut normal = Vector4::new(0.0, 0.0, 0.0, 0.0);
+impl Primitive for Mesh
+{
+	fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit>
+	{
+		let point = transform * ray.point;
+		let origin = transform * ray.origin;
+		let vector = point - origin;
 
-        for face in &self.faces {
-            // Moller-Trombore intersection algorithm
+		let mut intersect = f32::INFINITY;
+		let mut normal = Vector4::new(0.0, 0.0, 0.0, 0.0);
 
-            let v1 = &self.vertices[face.v1];
-            let v2 = &self.vertices[face.v2];
-            let v3 = &self.vertices[face.v3];
+		for face in &self.faces {
+			// Moller-Trombore intersection algorithm
 
-            let edge1 = v2 - v1;
-            let edge2 = v3 - v1;
-            
-            let h = math::cross_4d(&vector, &edge2);
-            let a = edge1.dot(&h);
+			let v1 = &self.vertices[face.v1];
+			let v2 = &self.vertices[face.v2];
+			let v3 = &self.vertices[face.v3];
 
-            if f32::abs(a) < math::EPSILON {
-                continue;
-            }
+			let edge1 = v2 - v1;
+			let edge2 = v3 - v1;
 
-            let f = 1.0 / a;
-            let s = origin - v1;
-            let u = f * s.dot(&h);
+			let h = math::cross_4d(&vector, &edge2);
+			let a = edge1.dot(&h);
 
-            if u < 0.0 || u > 1.0 {
-                continue;
-            }
+			if f32::abs(a) < math::EPSILON {
+				continue;
+			}
 
-            let q = math::cross_4d(&s, &edge1);
-            let v = f * vector.dot(&q);
+			let f = 1.0 / a;
+			let s = origin - v1;
+			let u = f * s.dot(&h);
 
-            if v < 0.0 || u + v > 1.0 {
-                continue;
-            }
+			if u < 0.0 || u > 1.0 {
+				continue;
+			}
 
-            let t = f * edge2.dot(&q);
+			let q = math::cross_4d(&s, &edge1);
+			let v = f * vector.dot(&q);
 
-            if t < math::EPSILON {
-                continue;
-            }
+			if v < 0.0 || u + v > 1.0 {
+				continue;
+			}
 
-            if t < intersect {
-                intersect = t;
-                normal = math::cross_4d(&(v2 - v1), &(v3 - v1)).normalize();
-            }
-        }
+			let t = f * edge2.dot(&q);
 
-        if intersect < f32::INFINITY {
-            if vector.dot(&normal) > 0.0 {
-                normal = -normal;
-            }
+			if t < math::EPSILON {
+				continue;
+			}
 
-            normal = math::transform_normals(&normal, &transform);
+			if t < intersect {
+				intersect = t;
+				normal = math::cross_4d(&(v2 - v1), &(v3 - v1)).normalize();
+			}
+		}
 
-            Some(Hit {
-                normal: normal,
-                intersect: intersect,
-                uv: (0.0, 0.0)
-            })
-        }
-        else
-        {
-            None
-        }
-    }
+		if intersect < f32::INFINITY {
+			if vector.dot(&normal) > 0.0 {
+				normal = -normal;
+			}
 
-    fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>) {
-        let mut max = Vector4::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY, 1.0);
-        let mut min = Vector4::new(f32::INFINITY, f32::INFINITY, f32::INFINITY, 1.0);
+			normal = math::transform_normals(&normal, &transform);
 
-        for vertex in &self.vertices {
-            min.x = f32::min(min.x, vertex.x);
-            min.y = f32::min(min.y, vertex.y);
-            min.z = f32::min(min.z, vertex.z);
+			Some(Hit {
+				normal: normal,
+				intersect: intersect,
+				uv: (0.0, 0.0),
+			})
+		} else {
+			None
+		}
+	}
 
-            max.x = f32::max(max.x, vertex.x);
-            max.y = f32::max(max.y, vertex.y);
-            max.z = f32::max(max.z, vertex.z);
-        }
+	fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>)
+	{
+		let mut max = Vector4::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY, 1.0);
+		let mut min = Vector4::new(f32::INFINITY, f32::INFINITY, f32::INFINITY, 1.0);
 
-        (min, max)
-    }
+		for vertex in &self.vertices {
+			min.x = f32::min(min.x, vertex.x);
+			min.y = f32::min(min.y, vertex.y);
+			min.z = f32::min(min.z, vertex.z);
+
+			max.x = f32::max(max.x, vertex.x);
+			max.y = f32::max(max.y, vertex.y);
+			max.z = f32::max(max.z, vertex.z);
+		}
+
+		(min, max)
+	}
 }

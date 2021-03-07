@@ -1,35 +1,41 @@
 use na::Vector3;
+use Grid;
 use Hit;
 use Light;
 use Material;
 use Object;
 use Ray;
-use Grid;
 
-pub struct Scene {
-    grid: Grid,
-    lights: Vec<Light>,
-    ambient: Vector3<f32>,
+pub struct Scene
+{
+	grid: Grid,
+	lights: Vec<Light>,
+	ambient: Vector3<f32>,
 }
 
-impl Scene {
-    pub fn new(objects: Vec<Object>, lights: Vec<Light>, ambient: Vector3<f32>) -> Self {
-        Scene {
-            grid: Grid::new(objects),
-            lights: lights,
-            ambient: ambient,
-        }
-    }
+impl Scene
+{
+	pub fn new(objects: Vec<Object>, lights: Vec<Light>, ambient: Vector3<f32>) -> Self
+	{
+		Scene {
+			grid: Grid::new(objects),
+			lights: lights,
+			ambient: ambient,
+		}
+	}
 
-    pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)> {
-        self.grid.check_hit(ray)
-    }
+	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)>
+	{
+		self.grid.check_hit(ray)
+	}
 
-    pub fn get_lights(&self) -> &Vec<Light> {
-        &self.lights
-    }
+	pub fn get_lights(&self) -> &Vec<Light>
+	{
+		&self.lights
+	}
 
-    pub fn get_ambient(&self) -> Vector3<f32> {
-        self.ambient
-    }
+	pub fn get_ambient(&self) -> Vector3<f32>
+	{
+		self.ambient
+	}
 }

@@ -1,0 +1,10 @@
+hard_tabs = true
+
+unstable_features = true
+
+brace_style = "AlwaysNextLine"
+combine_control_expr = false
+imports_granularity = "Item"
+group_imports = "StdExternalCrate"
+format_strings = true
+reorder_impl_items = true
