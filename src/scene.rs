@@ -8,7 +8,6 @@ use Grid;
 
 pub struct Scene {
     grid: Grid,
-    //objects: Vec<Object>,
     lights: Vec<Light>,
     ambient: Vector3<f32>,
 }
@@ -17,26 +16,12 @@ impl Scene {
     pub fn new(objects: Vec<Object>, lights: Vec<Light>, ambient: Vector3<f32>) -> Self {
         Scene {
             grid: Grid::new(objects),
-            //objects: objects,
             lights: lights,
             ambient: ambient,
         }
     }
 
     pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)> {
-        // let mut min_intersect = f32::INFINITY;
-        // let mut final_hit: Option<(Hit, &Material)> = None;
-
-        // for object in self.objects.iter() {
-        //     if let Some((hit, material)) = object.check_hit(ray) {
-        //         if hit.intersect < min_intersect {
-        //             min_intersect = hit.intersect;
-        //             final_hit = Some((hit, &material));
-        //         }
-        //     }
-        // }
-
-        // final_hit
         self.grid.check_hit(ray)
     }
 

@@ -1,4 +1,9 @@
 use na::{Matrix4, Vector3, Vector4};
+use num_cpus;
+use rand::{self, seq::SliceRandom};
+use std::sync::mpsc::{self, Sender};
+use std::thread;
+use std::{cmp::Ordering, sync::Arc};
 use util::math;
 use Hit;
 use Material;
@@ -35,6 +40,14 @@ impl Grid {
             num_cells.z as f32 * grid_cell_size,
         );
 
+        // let num_cells_scalar = 200.0;
+        // let grid_cell_size = f32::max(grid_max.z - grid_min.z, f32::max(grid_max.y - grid_min.y, grid_max.x - grid_min.x)) / num_cells_scalar;
+
+        // let grid_size = Vector3::repeat(
+        //     num_cells_scalar * grid_cell_size);
+
+        // let num_cells = Vector3::repeat(num_cells_scalar as usize);
+
         println!(
             "Grid initialized at location {},{},{}",
             grid_min.x, grid_min.y, grid_min.z
@@ -49,32 +62,73 @@ impl Grid {
             num_cells.x, num_cells.y, num_cells.z
         );
 
-        let mut grid = Grid {
-            position: grid_min,
-            size: grid_size,
-            num_cells: num_cells,
-            cell_size: grid_cell_size,
-            cells: Vec::new(),
-            objects: objects,
-        };
-
-        for z in 0..grid.num_cells.z {
-            for y in 0..grid.num_cells.y {
-                for x in 0..grid.num_cells.x {
-                    let position = grid_min
-                        + Vector3::new(
-                            grid_cell_size * x as f32,
-                            grid_cell_size * y as f32,
-                            grid_cell_size * z as f32,
-                        );
-
-                    grid.cells
-                        .push(GridCell::new(&position, grid_cell_size, &grid.objects));
+        // Generate list of all grid cells to be populated
+        let mut cell_list = Vec::new();
+        for z in 0..num_cells.z {
+            for y in 0..num_cells.y {
+                for x in 0..num_cells.x {
+                    cell_list.push((x, y, z));
                 }
             }
         }
 
-        grid
+        // Shuffle the list to more evenly distribute work between threads
+        cell_list.shuffle(&mut rand::thread_rng());
+
+        let objects = Arc::new(objects); // We will need to share objects between threads so temporarily store it in an Arc
+        let cells_per_thread = cell_list.len() / num_cpus::get();
+
+        let rx = {
+            let (tx, rx) = mpsc::channel();
+
+            for _ in 0..num_cpus::get() {
+                // Split off a piece of the cell_list for the thread we are about to start
+                let cell_list = cell_list.split_off(if cell_list.len() > cells_per_thread {
+                    cell_list.len() - cells_per_thread - 1
+                } else {
+                    0
+                });
+
+                let objects = Arc::clone(&objects);
+                let tx = mpsc::Sender::clone(&tx);
+
+                thread::spawn(move || {
+                    Grid::fill_worker(grid_min, grid_cell_size, cell_list, &objects, tx);
+                });
+            }
+
+            rx
+        };
+
+        // Collect populated cells and sort them back into the correct order
+        let mut cells: Vec<((usize, usize, usize), GridCell)> = rx.into_iter().collect();
+        cells.sort_unstable_by(|cell1, cell2| -> Ordering {
+            let ((x1, y1, z1), _) = cell1;
+            let ((x2, y2, z2), _) = cell2;
+
+            if z1 != z2 {
+                usize::cmp(z1, z2)
+            } else if y1 != y2 {
+                usize::cmp(y1, y2)
+            } else {
+                usize::cmp(x1, x2)
+            }
+        });
+
+        // Remove the x,y,z coordinates from the list of cells, they are no longer needed
+        let cells = cells.into_iter().map(|(_, cell)| cell).collect();
+
+        // Take objects out of the Arc, it no longer needs to be shared between threads
+        let objects = Arc::try_unwrap(objects).unwrap();
+
+        Grid {
+            position: grid_min,
+            size: grid_size,
+            num_cells: num_cells,
+            cell_size: grid_cell_size,
+            cells: cells,
+            objects: objects,
+        }
     }
 
     pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)> {
@@ -181,6 +235,31 @@ impl Grid {
         }
 
         hit
+    }
+
+    fn fill_worker(
+        grid_min: Vector3<f32>,
+        cell_size: f32,
+        mut cell_list: Vec<(usize, usize, usize)>,
+        objects: &Vec<Object>,
+        tx: Sender<((usize, usize, usize), GridCell)>,
+    ) {
+        loop {
+            let (x, y, z) = match cell_list.pop() {
+                Some(cell) => cell,
+                None => break,
+            };
+
+            let position = grid_min
+                + Vector3::new(
+                    cell_size * x as f32,
+                    cell_size * y as f32,
+                    cell_size * z as f32,
+                );
+
+            tx.send(((x, y, z), GridCell::new(&position, cell_size, &objects)))
+                .unwrap();
+        }
     }
 
     fn get_bbox_corners_in_world_space(objects: &Vec<Object>) -> Vec<[Vector4<f32>; 8]> {
@@ -505,24 +584,24 @@ impl GridCell {
                 .fold(Vec::from(polygon.clone()), |input_list, plane| {
                     GridCell::clip_polygon_to_plane(&plane, input_list)
                 });
-    
+
             !output_list.is_empty()
         })
     }
-    
+
     fn clip_polygon_to_plane(
         plane: &(Vector4<f32>, Vector4<f32>),
         input_list: Vec<Vector4<f32>>,
     ) -> Vec<Vector4<f32>> {
         // Sutherland-Hodgman algorithm
-    
+
         (0..input_list.len()).fold(Vec::new(), |mut point_list, i| {
             let current_point = input_list[i];
             let prev_point = input_list[(i + input_list.len() - 1) % input_list.len()];
-    
+
             let la = GridCell::distance_from_plane(&current_point, plane);
             let lb = GridCell::distance_from_plane(&prev_point, plane);
-    
+
             if la >= 0.0 {
                 if lb < 0.0 {
                     point_list.push(GridCell::intersection_from_distances(
@@ -532,7 +611,7 @@ impl GridCell {
                         &prev_point,
                     ));
                 }
-    
+
                 point_list.push(current_point);
             } else if lb >= 0.0 {
                 point_list.push(GridCell::intersection_from_distances(
@@ -542,15 +621,15 @@ impl GridCell {
                     &prev_point,
                 ));
             }
-    
+
             point_list
         })
     }
-    
+
     fn distance_from_plane(point: &Vector4<f32>, plane: &(Vector4<f32>, Vector4<f32>)) -> f32 {
         (point - plane.0).dot(&plane.1)
     }
-    
+
     fn intersection_from_distances(
         la: f32,
         lb: f32,
@@ -558,10 +637,10 @@ impl GridCell {
         prev_point: &Vector4<f32>,
     ) -> Vector4<f32> {
         let t = la / (la - lb);
-    
+
         current_point + (t * (prev_point - current_point))
     }
-    
+
     fn check_points_in_box(
         planes: &[(Vector4<f32>, Vector4<f32>); 6],
         points: &[Vector4<f32>; 8],
@@ -572,7 +651,7 @@ impl GridCell {
                 .all(|plane| -> bool { GridCell::distance_from_plane(point, plane) > 0.0 })
         })
     }
-    
+
     fn get_grid_planes(
         position: &Vector3<f32>,
         size: f32,
@@ -580,9 +659,9 @@ impl GridCell {
     ) -> [(Vector4<f32>, Vector4<f32>); 6] {
         let lower = transform * position.insert_row(3, 1.0);
         let upper = transform * position.add_scalar(size).insert_row(3, 1.0);
-    
+
         let inverse_transform = transform.try_inverse().unwrap();
-    
+
         [
             (
                 lower,
@@ -610,7 +689,7 @@ impl GridCell {
             ),
         ]
     }
-    
+
     fn get_grid_points(
         position: &Vector3<f32>,
         size: f32,
@@ -618,7 +697,7 @@ impl GridCell {
     ) -> [Vector4<f32>; 8] {
         let lower = position.insert_row(3, 0.0);
         let upper = lower.add_scalar(size);
-    
+
         [
             transform * lower,                                        // Left-Bottom-Back
             transform * Vector4::new(upper.x, lower.y, lower.z, 1.0), // Right-Bottom-Back
@@ -630,10 +709,10 @@ impl GridCell {
             transform * upper,                                        // Right-Top-Front
         ]
     }
-    
+
     fn get_bbox_planes(obj: &Object) -> [(Vector4<f32>, Vector4<f32>); 6] {
         let (lower, upper) = obj.get_bounding_box().get_extents();
-    
+
         [
             (*lower, Vector4::new(1.0, 0.0, 0.0, 0.0)),
             (*lower, Vector4::new(0.0, 1.0, 0.0, 0.0)),
@@ -643,10 +722,10 @@ impl GridCell {
             (*upper, Vector4::new(0.0, 0.0, -1.0, 0.0)),
         ]
     }
-    
+
     fn get_bbox_polygons(obj: &Object) -> [[Vector4<f32>; 4]; 6] {
         let (lower, upper) = obj.get_bounding_box().get_extents();
-    
+
         let points = [
             *lower,                                       // Left-Bottom-Back 0
             Vector4::new(upper.x, lower.y, lower.z, 1.0), // Right-Bottom-Back 1
@@ -657,7 +736,7 @@ impl GridCell {
             Vector4::new(upper.x, lower.y, upper.z, 1.0), // Right-Bottom-Front 6
             *upper,                                       // Right-Top-Front 7
         ];
-    
+
         [
             [points[0], points[3], points[4], points[5]], // Left
             [points[0], points[1], points[6], points[5]], // Bottom

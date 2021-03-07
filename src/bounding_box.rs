@@ -2,7 +2,9 @@ use na::{Vector4, Matrix4};
 use std::f32;
 use util::math;
 use Ray;
+use std::fmt;
 
+#[derive(fmt::Debug)]
 pub struct BoundingBox {
     lower_point: Vector4<f32>,
     upper_point: Vector4<f32>,

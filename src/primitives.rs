@@ -3,6 +3,9 @@ use std::f32;
 use traits::Primitive;
 use util::math;
 use {Hit, Ray};
+use std::fmt;
+
+#[derive(fmt::Debug)]
 pub struct NonhierSphere {
     position: Vector4<f32>,
     radius: f32,
@@ -30,6 +33,7 @@ impl Primitive for NonhierSphere {
     }
 }
 
+#[derive(fmt::Debug)]
 pub struct Sphere {}
 
 impl Sphere {
@@ -106,6 +110,7 @@ fn sphere_intersect(
     }
 }
 
+#[derive(fmt::Debug)]
 pub struct NonhierBox {
     position: Vector4<f32>,
     size: f32,
@@ -130,6 +135,7 @@ impl Primitive for NonhierBox {
     }
 }
 
+#[derive(fmt::Debug)]
 pub struct Cube {}
 
 impl Cube {

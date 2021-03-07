@@ -4,7 +4,9 @@ use Hit;
 use Light;
 use Ray;
 use Scene;
+use std::fmt;
 
+#[derive(fmt::Debug)]
 pub struct Phong {
     diffuse: Vector3<f32>,
     specular: Vector3<f32>,

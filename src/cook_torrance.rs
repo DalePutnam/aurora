@@ -6,7 +6,9 @@ use Hit;
 use Light;
 use Ray;
 use Scene;
+use std::fmt;
 
+#[derive(fmt::Debug)]
 pub struct CookTorrance {
     colour: Vector3<f32>,
     diffuse: f32,

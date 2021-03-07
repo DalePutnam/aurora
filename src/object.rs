@@ -1,5 +1,6 @@
 use na::Matrix4;
 use std::sync::Arc;
+use std::fmt;
 
 use traits::Primitive;
 use BoundingBox;
@@ -7,6 +8,7 @@ use Hit;
 use Material;
 use Ray;
 
+#[derive(fmt::Debug)]
 pub struct Object {
     _name: String,
     _id: u64,

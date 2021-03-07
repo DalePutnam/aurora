@@ -3,7 +3,9 @@ use traits::BSDF;
 use Hit;
 use Ray;
 use Scene;
+use std::fmt;
 
+#[derive(fmt::Debug)]
 pub struct Material {
     bsdf: Box<dyn BSDF>,
 }

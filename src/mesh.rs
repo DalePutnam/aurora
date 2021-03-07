@@ -7,12 +7,15 @@ use traits::Primitive;
 use util::math;
 use Hit;
 use Ray;
+use std::fmt;
 
+#[derive(fmt::Debug)]
 pub struct Mesh {
     vertices: Vec<Vector4<f32>>,
     faces: Vec<Triangle>
 }
 
+#[derive(fmt::Debug)]
 struct Triangle {
     pub v1: usize,
     pub v2: usize,

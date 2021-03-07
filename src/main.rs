@@ -3,6 +3,7 @@ extern crate image;
 extern crate nalgebra as na;
 extern crate num_cpus;
 extern crate rlua;
+extern crate rand;
 
 pub use self::bounding_box::BoundingBox;
 pub use self::cook_torrance::CookTorrance;
@@ -185,7 +186,7 @@ fn trace_worker(
     }
 }
 
-fn trace_pixel(x: u32, y: u32, cpu: usize, stw: &Matrix4<f32>, eye: &Vector4<f32>, scene: &Scene) -> (u8, u8, u8) {
+fn trace_pixel(x: u32, y: u32, _cpu: usize, stw: &Matrix4<f32>, eye: &Vector4<f32>, scene: &Scene) -> (u8, u8, u8) {
     let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
     let ray = Ray {
         point: pworld,
