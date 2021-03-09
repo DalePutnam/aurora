@@ -86,7 +86,7 @@ impl Grid
 		cell_list.shuffle(&mut rand::thread_rng());
 
 		// We will need to share objects between threads so temporarily store it in an Arc
-		let objects = Arc::new(objects); 
+		let objects = Arc::new(objects);
 		let cells_per_thread = cell_list.len() / num_cpus::get();
 
 		let rx = {
@@ -560,13 +560,13 @@ impl GridCell
 				cell.objects.push(i);
 			} else {
 				let bbox_planes = GridCell::get_bbox_planes(object);
-				let points = GridCell::get_grid_points(position, size, &object.get_transform());
+				let grid_point = object.get_transform() * position.insert_row(3, 0.0);
 
 				// If the first check did not find that the object intersected the
-				// grid cell we know check if the object bounding box contains any
-				// of the corners of the grid cell. This will catch the one
-				// case that the above check misses.
-				if GridCell::check_points_in_box(&bbox_planes, &points) {
+				// grid cell we now check if the object bounding box contains a
+				// corner of the grid cell. This will catch the one case the above
+				// check does not.
+				if GridCell::check_point_in_box(&bbox_planes, &grid_point) {
 					cell.objects.push(i);
 				}
 			}
@@ -671,16 +671,12 @@ impl GridCell
 		current_point + (t * (prev_point - current_point))
 	}
 
-	fn check_points_in_box(
-		planes: &[(Vector4<f32>, Vector4<f32>); 6],
-		points: &[Vector4<f32>; 8],
-	) -> bool
+	fn check_point_in_box(planes: &[(Vector4<f32>, Vector4<f32>); 6], point: &Vector4<f32>)
+		-> bool
 	{
-		points.iter().any(|point| -> bool {
-			planes
-				.iter()
-				.all(|plane| -> bool { GridCell::distance_from_plane(point, plane) > 0.0 })
-		})
+		planes
+			.iter()
+			.all(|plane| -> bool { GridCell::distance_from_plane(point, plane) > 0.0 })
 	}
 
 	fn get_grid_planes(
@@ -719,27 +715,6 @@ impl GridCell
 				upper,
 				math::transform_normals(&Vector4::new(0.0, 0.0, -1.0, 0.0), &inverse_transform),
 			),
-		]
-	}
-
-	fn get_grid_points(
-		position: &Vector3<f32>,
-		size: f32,
-		transform: &Matrix4<f32>,
-	) -> [Vector4<f32>; 8]
-	{
-		let lower = position.insert_row(3, 0.0);
-		let upper = lower.add_scalar(size);
-
-		[
-			transform * lower,                                        // Left-Bottom-Back
-			transform * Vector4::new(upper.x, lower.y, lower.z, 1.0), // Right-Bottom-Back
-			transform * Vector4::new(upper.x, upper.y, lower.z, 1.0), // Right-Top-Back
-			transform * Vector4::new(lower.x, upper.y, lower.z, 1.0), // Left-Top-Back
-			transform * Vector4::new(lower.x, upper.y, upper.z, 1.0), // Left-Top-Front
-			transform * Vector4::new(lower.x, lower.y, upper.z, 1.0), // Left-Bottom-Front
-			transform * Vector4::new(upper.x, lower.y, upper.z, 1.0), // Right-Bottom-Front
-			transform * upper,                                        // Right-Top-Front
 		]
 	}
 
@@ -839,7 +814,7 @@ mod tests
 		];
 
 		assert!(GridCell::check_polygons_in_cell(&planes, &polygons));
-		assert!(GridCell::check_points_in_box(&planes, &points));
+		assert!(GridCell::check_point_in_box(&planes, &points[0]));
 	}
 
 	#[test]
