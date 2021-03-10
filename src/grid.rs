@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::ptr::NonNull;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
@@ -23,7 +24,7 @@ pub struct Grid
 	num_cells: Vector3<usize>,
 	cell_size: f32,
 	cells: Vec<GridCell>,
-	objects: Vec<Object>,
+	_objects: Vec<Object>,
 }
 
 impl Grid
@@ -140,7 +141,7 @@ impl Grid
 			num_cells: num_cells,
 			cell_size: grid_cell_size,
 			cells: cells,
-			objects: objects,
+			_objects: objects,
 		}
 	}
 
@@ -187,7 +188,7 @@ impl Grid
 		let mut hit: Option<(Hit, &Material)> = None;
 
 		loop {
-			if let Some(cell_hit) = cell.check_hit(ray, &self.objects) {
+			if let Some(cell_hit) = cell.check_hit(ray) {
 				match &hit {
 					Some((hit_info, _)) => {
 						if cell_hit.0.intersect < hit_info.intersect
@@ -272,7 +273,7 @@ impl Grid
 					cell_size * z as f32,
 				);
 
-			tx.send(((x, y, z), GridCell::new(&position, cell_size, &objects)))
+			tx.send(((x, y, z), GridCell::new(&position, cell_size, objects)))
 				.unwrap();
 		}
 	}
@@ -538,7 +539,7 @@ impl Grid
 
 struct GridCell
 {
-	objects: Vec<usize>,
+	objects: Vec<NonNull<Object>>,
 }
 
 impl GridCell
@@ -549,7 +550,7 @@ impl GridCell
 			objects: Vec::new(),
 		};
 
-		objects.iter().enumerate().for_each(|(i, object)| {
+		objects.iter().for_each(|object| {
 			let planes = GridCell::get_grid_planes(position, size, &object.get_transform());
 			let polygons = GridCell::get_bbox_polygons(object);
 
@@ -557,7 +558,7 @@ impl GridCell
 			// This will find all objects that are within or that intersect a grid cell
 			// except for bounding boxes that completely contain a grid cell
 			if GridCell::check_polygons_in_cell(&planes, &polygons) {
-				cell.objects.push(i);
+				cell.objects.push(NonNull::from(object));
 			} else {
 				let bbox_planes = GridCell::get_bbox_planes(object);
 				let grid_point = object.get_transform() * position.insert_row(3, 0.0);
@@ -567,7 +568,7 @@ impl GridCell
 				// corner of the grid cell. This will catch the one case the above
 				// check does not.
 				if GridCell::check_point_in_box(&bbox_planes, &grid_point) {
-					cell.objects.push(i);
+					cell.objects.push(NonNull::from(object));
 				}
 			}
 		});
@@ -575,13 +576,14 @@ impl GridCell
 		cell
 	}
 
-	pub fn check_hit<'a>(&self, ray: &Ray, objects: &'a Vec<Object>)
-		-> Option<(Hit, &'a Material)>
+	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)>
 	{
 		self.objects
 			.iter()
-			.fold(None, |last_hit, i| -> Option<(Hit, &'a Material)> {
-				if let Some(hit) = objects[*i].check_hit(ray) {
+			.fold(None, |last_hit, object| -> Option<(Hit, &Material)> {
+				let object = unsafe { object.as_ref() };
+
+				if let Some(hit) = object.check_hit(ray) {
 					match last_hit {
 						Some(last_hit) => {
 							if hit.0.intersect < last_hit.0.intersect
@@ -757,6 +759,9 @@ impl GridCell
 		]
 	}
 }
+
+unsafe impl Send for GridCell {}
+unsafe impl Sync for GridCell {}
 
 #[cfg(test)]
 mod tests
