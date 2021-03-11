@@ -90,12 +90,7 @@ impl BSDF for Phong
 		let contact_point = ray.origin + (hit.intersect * (ray.point - ray.origin));
 
 		for light in scene.get_lights().iter() {
-			let shadow_ray = Ray {
-				origin: contact_point,
-				point: *light.get_position(),
-				id: 0,
-				thread_id: 0,
-			};
+			let shadow_ray = Ray::new(&contact_point, light.get_position());
 
 			if let Some((shadow_hit, _)) = scene.check_hit(&shadow_ray) {
 				if shadow_hit.intersect <= 1.0 {

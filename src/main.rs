@@ -101,19 +101,19 @@ pub fn render(
 	);
 
 	if let Some(p) = &pixel {
-		let (r, g, b) = trace_pixel(p.0, p.1, 0, &stw, &eye_4d, scene.as_ref());
+		let (r, g, b) = trace_pixel(p.0, p.1, &stw, &eye_4d, scene.as_ref());
 		image.put_pixel(p.0, p.1, *Rgb::from_slice(&[r, g, b]));
 	} else {
 		let rx = {
 			let (tx, rx) = mpsc::channel();
 
-			for cpu in 0..cpus {
+			for _ in 0..cpus {
 				let frame_sections = Arc::clone(&frame_sections);
 				let tx = mpsc::Sender::clone(&tx);
 				let scene = Arc::clone(&scene);
 
 				thread::spawn(move || {
-					trace_worker(cpu, stw, eye_4d, scene.as_ref(), frame_sections, tx);
+					trace_worker(stw, eye_4d, scene.as_ref(), frame_sections, tx);
 				});
 			}
 
@@ -161,7 +161,6 @@ pub fn render(
 }
 
 fn trace_worker(
-	cpu: usize,
 	stw: Matrix4<f32>,
 	eye: Vector4<f32>,
 	scene: &Scene,
@@ -176,21 +175,21 @@ fn trace_worker(
 				None => break,
 			},
 			Err(_) => {
-				println!("Frame section lock is poisoned! Thread {} exiting.", cpu);
+				println!("Frame section lock is poisoned! Thread exiting.");
 				break;
 			}
 		};
 
 		for x in frame_section.x..frame_section.x + frame_section.width {
 			for y in frame_section.y..frame_section.y + frame_section.height {
-				let (r, g, b) = trace_pixel(x, y, cpu, &stw, &eye, &scene);
+				let (r, g, b) = trace_pixel(x, y, &stw, &eye, &scene);
 
 				if let Err(_) = tx.send(PixelColour {
 					x: x,
 					y: y,
 					rgb: [r, g, b],
 				}) {
-					println!("Receiver closed unexpectedly! Thread {} exiting.", cpu);
+					println!("Receiver closed unexpectedly! Thread exiting.");
 					break;
 				}
 			}
@@ -201,19 +200,13 @@ fn trace_worker(
 fn trace_pixel(
 	x: u32,
 	y: u32,
-	_cpu: usize,
 	stw: &Matrix4<f32>,
 	eye: &Vector4<f32>,
 	scene: &Scene,
 ) -> (u8, u8, u8)
 {
 	let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
-	let ray = Ray {
-		point: pworld,
-		origin: *eye,
-		id: 0,
-		thread_id: 0,
-	};
+	let ray = Ray::new(eye, &pworld);
 
 	let colour_vec = match scene.check_hit(&ray) {
 		Some((hit, material)) => material.shade_pixel(&ray, &hit, scene),

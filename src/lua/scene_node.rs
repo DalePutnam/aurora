@@ -69,6 +69,7 @@ impl SceneNode
 					&new_transform,
 					primitive,
 					material,
+					num_cpus::get()
 				));
 			}
 		}
