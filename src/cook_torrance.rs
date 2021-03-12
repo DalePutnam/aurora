@@ -38,7 +38,7 @@ impl CookTorrance
 		light: &Light,
 	) -> Vector3<f32>
 	{
-		if self.diffuse < math::EPSILON {
+		if math::near_zero(self.diffuse) {
 			return Vector3::new(0.0, 0.0, 0.0);
 		}
 
@@ -58,7 +58,7 @@ impl CookTorrance
 		light: &Light,
 	) -> Vector3<f32>
 	{
-		if 1.0 - self.diffuse < math::EPSILON {
+		if math::near_zero(1.0 - self.diffuse) {
 			return Vector3::new(0.0, 0.0, 0.0);
 		}
 

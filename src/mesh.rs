@@ -97,7 +97,7 @@ impl Primitive for Mesh
 			let h = math::cross_4d(&vector, &edge2);
 			let a = edge1.dot(&h);
 
-			if f32::abs(a) < math::EPSILON {
+			if math::near_zero(a) {
 				continue;
 			}
 
@@ -118,7 +118,7 @@ impl Primitive for Mesh
 
 			let t = f * edge2.dot(&q);
 
-			if t < math::EPSILON {
+			if !math::far_from_zero_pos(t) {
 				continue;
 			}
 

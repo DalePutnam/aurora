@@ -192,7 +192,7 @@ impl Grid
 				match &hit {
 					Some((hit_info, _)) => {
 						if cell_hit.0.intersect < hit_info.intersect
-							&& !math::near_zero(cell_hit.0.intersect)
+							&& math::far_from_zero_pos(cell_hit.0.intersect)
 						{
 							hit = Some(cell_hit);
 						}
@@ -522,9 +522,9 @@ impl Grid
 			t_max = tz_max;
 		}
 
-		if !math::near_zero(t_min) {
+		if math::far_from_zero_pos(t_min) {
 			Some(t_min)
-		} else if !math::near_zero(t_max) {
+		} else if math::far_from_zero_pos(t_max) {
 			Some(t_max)
 		} else {
 			None
@@ -587,7 +587,7 @@ impl GridCell
 					match last_hit {
 						Some(last_hit) => {
 							if hit.0.intersect < last_hit.0.intersect
-								&& !math::near_zero(hit.0.intersect)
+								&& math::far_from_zero_pos(hit.0.intersect)
 							{
 								Some(hit)
 							} else {

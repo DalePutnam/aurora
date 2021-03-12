@@ -2,8 +2,9 @@ use na::Matrix4;
 use na::Vector4;
 use na::U3;
 
-pub const EPSILON: f32 = 0.0001;
+const EPSILON: f32 = 0.0001;
 
+#[inline(always)]
 pub fn cross_4d(a: &Vector4<f32>, b: &Vector4<f32>) -> Vector4<f32>
 {
 	let a3 = a.fixed_rows::<U3>(0);
@@ -14,6 +15,7 @@ pub fn cross_4d(a: &Vector4<f32>, b: &Vector4<f32>) -> Vector4<f32>
 	c3.insert_row(3, 0.0)
 }
 
+#[inline(always)]
 pub fn transform_normals(normal: &Vector4<f32>, transform: &Matrix4<f32>) -> Vector4<f32>
 {
 	let n3 = normal.fixed_rows::<U3>(0);
@@ -24,9 +26,22 @@ pub fn transform_normals(normal: &Vector4<f32>, transform: &Matrix4<f32>) -> Vec
 	ln3.insert_row(3, 0.0)
 }
 
+#[inline(always)]
 pub fn near_zero(number: f32) -> bool
 {
 	f32::abs(number) < EPSILON
+}
+
+#[inline(always)]
+pub fn far_from_zero_pos(number: f32) -> bool
+{
+	number > EPSILON
+}
+
+#[inline(always)]
+pub fn far_from_zero_neg(number: f32) -> bool
+{
+	number < -EPSILON
 }
 
 pub enum QuadRoots

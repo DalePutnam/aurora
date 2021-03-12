@@ -90,17 +90,17 @@ fn sphere_intersect(
 	match math::quadratic_roots(a, b, c) {
 		math::QuadRoots::Zero | math::QuadRoots::One(_) => None,
 		math::QuadRoots::Two(root_one, root_two) => {
-			if root_one < math::EPSILON && root_two < math::EPSILON {
+			if !math::far_from_zero_pos(root_one) && !math::far_from_zero_pos(root_two) {
 				None
 			} else {
 				let t = if root_one <= root_two {
-					if root_one > math::EPSILON {
+					if math::far_from_zero_pos(root_one) {
 						root_one
 					} else {
 						root_two
 					}
 				} else {
-					if root_two > math::EPSILON {
+					if math::far_from_zero_pos(root_two) {
 						root_two
 					} else {
 						root_one
@@ -262,9 +262,9 @@ fn box_intersect(
 		face_max = z_face_max;
 	}
 
-	let (intersect, face) = if t_min > math::EPSILON {
+	let (intersect, face) = if math::far_from_zero_pos(t_min) {
 		(t_min, face_min)
-	} else if t_max > math::EPSILON {
+	} else if math::far_from_zero_pos(t_max) {
 		(t_max, face_max)
 	} else {
 		return None;

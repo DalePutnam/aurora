@@ -87,7 +87,7 @@ impl BoundingBox
 			t_max = tz_max;
 		}
 
-		if t_min <= math::EPSILON && t_max <= math::EPSILON {
+		if !math::far_from_zero_pos(t_min) && !math::far_from_zero_pos(t_max) {
 			return false;
 		}
 
