@@ -77,8 +77,8 @@ impl Primitive for Mesh
 {
 	fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit>
 	{
-		let point = transform * ray.point;
-		let origin = transform * ray.origin;
+		let point = transform * ray.point();
+		let origin = transform * ray.origin();
 		let vector = point - origin;
 
 		let mut intersect = f32::INFINITY;

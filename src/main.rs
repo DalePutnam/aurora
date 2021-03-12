@@ -4,6 +4,7 @@ extern crate nalgebra as na;
 extern crate num_cpus;
 extern crate rand;
 extern crate rlua;
+extern crate thread_local;
 
 pub use self::bounding_box::BoundingBox;
 pub use self::cook_torrance::CookTorrance;

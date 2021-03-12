@@ -3,6 +3,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use na::Matrix4;
+use thread_local::ThreadLocal;
 use traits::Primitive;
 use BoundingBox;
 use Hit;
@@ -18,7 +19,7 @@ pub struct Object
 	bounding_box: Box<BoundingBox>,
 	primitive: Arc<dyn Primitive>,
 	material: Arc<Material>,
-	last_ray: Vec<Cell<Option<u64>>>,
+	last_seen_ray: ThreadLocal<Cell<Option<u64>>>,
 }
 
 impl Object
@@ -29,7 +30,6 @@ impl Object
 		transform: &Matrix4<f32>,
 		primitive: Arc<dyn Primitive>,
 		material: Arc<Material>,
-		num_threads: usize,
 	) -> Self
 	{
 		// Get min/max coordinates in model space
@@ -43,7 +43,7 @@ impl Object
 			transform: transform.try_inverse().unwrap(), // We need the world to model matrix here
 			primitive: primitive,
 			material: material,
-			last_ray: vec![Cell::new(None); num_threads],
+			last_seen_ray: ThreadLocal::new(),
 		}
 	}
 
@@ -81,17 +81,12 @@ impl Object
 
 	fn ray_previously_visited(&self, ray: &Ray) -> bool
 	{
-		if ray.get_thread() >= self.last_ray.len() {
-			false
+		let last_seen_ray_cell = self.last_seen_ray.get_or(|| Cell::new(None));
+
+		if let Some(last_seen_ray_id) = last_seen_ray_cell.replace(Some(ray.id())) {
+			last_seen_ray_id == ray.id()
 		} else {
-			let id_cell = &self.last_ray[ray.get_thread()];
-			if let Some(id) = id_cell.replace(Some(ray.get_id())) {
-				id == ray.get_id()
-			} else {
-				false
-			}
+			false
 		}
 	}
 }
-
-unsafe impl Sync for Object {}

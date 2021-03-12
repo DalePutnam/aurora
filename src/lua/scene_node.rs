@@ -6,12 +6,12 @@ use lua;
 use na::Matrix4;
 use na::Unit;
 use na::Vector3;
+use rlua;
 use rlua::Context;
 use rlua::FromLua;
 use rlua::UserData;
 use rlua::UserDataMethods;
 use rlua::Value;
-use rlua::{self};
 use traits::Primitive;
 use Material;
 use Object;
@@ -69,7 +69,6 @@ impl SceneNode
 					&new_transform,
 					primitive,
 					material,
-					num_cpus::get()
 				));
 			}
 		}

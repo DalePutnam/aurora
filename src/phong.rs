@@ -87,7 +87,7 @@ impl BSDF for Phong
 		let mut dc = Vector3::new(0.0, 0.0, 0.0);
 		let mut sc = Vector3::new(0.0, 0.0, 0.0);
 
-		let contact_point = ray.origin + (hit.intersect * (ray.point - ray.origin));
+		let contact_point = ray.origin() + (hit.intersect * (ray.point() - ray.origin()));
 
 		for light in scene.get_lights().iter() {
 			let shadow_ray = Ray::new(&contact_point, light.get_position());
@@ -99,7 +99,7 @@ impl BSDF for Phong
 			}
 
 			dc += self.calculate_diffuse(&contact_point, &hit.normal, &light);
-			sc += self.calculate_specular(&contact_point, &ray.origin, &hit.normal, &light);
+			sc += self.calculate_specular(&contact_point, &ray.origin(), &hit.normal, &light);
 		}
 
 		ac + dc + sc

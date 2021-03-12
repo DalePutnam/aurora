@@ -147,7 +147,7 @@ impl Grid
 
 	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)>
 	{
-		let ray_direction = ray.point - ray.origin;
+		let ray_direction = ray.point() - ray.origin();
 
 		let (step_x, step_y, step_z) = self.get_step_directions(&ray_direction);
 		let (just_out_x, just_out_y, just_out_z) = self.get_step_out_values(&ray_direction);
@@ -376,7 +376,7 @@ impl Grid
 
 	fn get_starting_cell(&self, ray: &Ray) -> Option<(i64, i64, i64)>
 	{
-		let (grid_x, grid_y, grid_z) = self.get_cell_from_point(&ray.origin);
+		let (grid_x, grid_y, grid_z) = self.get_cell_from_point(&ray.origin());
 
 		if grid_x < 0
 			|| grid_x >= self.num_cells.x as i64
@@ -386,7 +386,7 @@ impl Grid
 			|| grid_z >= self.num_cells.z as i64
 		{
 			if let Some(t) = self.intersect_grid_bounds(ray) {
-				let grid_intersect = ray.origin + (t * (ray.point - ray.origin));
+				let grid_intersect = ray.origin() + (t * (ray.point() - ray.origin()));
 				Some(self.get_cell_from_point(&grid_intersect))
 			} else {
 				None
@@ -452,13 +452,13 @@ impl Grid
 		let first_point = cell_position + first_point_offset;
 		let second_point = cell_position + second_point_offset;
 
-		let la = (ray.origin - first_point).dot(&normal);
-		let lb = (ray.point - first_point).dot(&normal);
+		let la = (ray.origin() - first_point).dot(&normal);
+		let lb = (ray.point() - first_point).dot(&normal);
 
 		let t_max = f32::abs(la / (la - lb));
 
-		let la = (ray.origin - second_point).dot(&normal);
-		let lb = (ray.point - second_point).dot(&normal);
+		let la = (ray.origin() - second_point).dot(&normal);
+		let lb = (ray.point() - second_point).dot(&normal);
 
 		let t_delta = f32::abs(t_max - (la / (la - lb)));
 
@@ -467,12 +467,12 @@ impl Grid
 
 	fn intersect_grid_bounds(&self, ray: &Ray) -> Option<f32>
 	{
-		let ray_direction = ray.point - ray.origin;
+		let ray_direction = ray.point() - ray.origin();
 
 		let inv_direction = Vector4::repeat(1.0).component_div(&ray_direction);
 
-		let min = (self.position.x - ray.origin.x) * inv_direction.x;
-		let max = (self.position.x + self.size.x - ray.origin.x) * inv_direction.x;
+		let min = (self.position.x - ray.origin().x) * inv_direction.x;
+		let max = (self.position.x + self.size.x - ray.origin().x) * inv_direction.x;
 
 		let (mut t_min, mut t_max) = if inv_direction.x >= 0.0 {
 			(min, max)
@@ -480,8 +480,8 @@ impl Grid
 			(max, min)
 		};
 
-		let min = (self.position.y - ray.origin.y) * inv_direction.y;
-		let max = (self.position.y + self.size.y - ray.origin.y) * inv_direction.y;
+		let min = (self.position.y - ray.origin().y) * inv_direction.y;
+		let max = (self.position.y + self.size.y - ray.origin().y) * inv_direction.y;
 
 		let (ty_min, ty_max) = if inv_direction.y >= 0.0 {
 			(min, max)
@@ -501,8 +501,8 @@ impl Grid
 			t_max = ty_max;
 		}
 
-		let min = (self.position.z - ray.origin.z) * inv_direction.z;
-		let max = (self.position.z + self.size.z - ray.origin.z) * inv_direction.z;
+		let min = (self.position.z - ray.origin().z) * inv_direction.z;
+		let max = (self.position.z + self.size.z - ray.origin().z) * inv_direction.z;
 
 		let (tz_min, tz_max) = if inv_direction.z >= 0.0 {
 			(min, max)
