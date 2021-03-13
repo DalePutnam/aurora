@@ -13,6 +13,8 @@ use NonhierSphere;
 use Phong;
 use Sphere;
 
+use super::SceneNode;
+
 impl Phong
 {
 	pub fn lua_new<'lua>(
@@ -172,5 +174,14 @@ impl Light
 			&na::Vector3::from(colour),
 			&na::Vector3::from(falloff),
 		))
+	}
+}
+
+impl SceneNode
+{
+	pub fn lua_new<'lua>(lua: Context<'lua>, lua_name: Value<'lua>) -> rlua::Result<SceneNode>
+	{
+		let name = String::from_lua(lua_name, lua)?;
+		Ok(SceneNode::new(&name))
 	}
 }

@@ -1,13 +1,13 @@
 use std::clone::Clone;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::cell::Cell;
 
 use lua;
 use na::Matrix4;
 use na::Unit;
 use na::Vector3;
 use rlua;
-use rlua::Context;
 use rlua::FromLua;
 use rlua::UserData;
 use rlua::UserDataMethods;
@@ -16,73 +16,41 @@ use traits::Primitive;
 use Material;
 use Object;
 
-struct SceneNodeInner
+pub struct SceneNodeInner
 {
-	_name: String,
+	name: String,
 	transform: Matrix4<f32>,
 	children: Vec<SceneNode>,
 	primitive: Option<Arc<dyn Primitive>>,
 	material: Option<Arc<Material>>,
+	objects_built: Cell<usize>,
 }
 
-#[derive(Clone)]
 pub struct SceneNode
 {
-	inner: Arc<Mutex<SceneNodeInner>>,
+	inner: Arc<Mutex<SceneNodeInner>>
 }
-
 impl SceneNode
 {
 	pub fn new(name: &str) -> Self
 	{
 		let inner = SceneNodeInner {
-			_name: name.to_string(),
+			name: name.to_string(),
 			transform: Matrix4::identity(),
 			children: Vec::new(),
 			primitive: None,
 			material: None,
+			objects_built: Cell::new(0)
 		};
 
 		SceneNode {
-			inner: Arc::new(Mutex::new(inner)),
+			inner: Arc::new(Mutex::new(inner))
 		}
 	}
 
 	pub fn convert_to_object_list(&self) -> Vec<Object>
 	{
-		self.convert_to_object_list_inner(&Matrix4::identity(), 0).0
-	}
-
-	fn convert_to_object_list_inner(&self, transform: &Matrix4<f32>, id: u64)
-		-> (Vec<Object>, u64)
-	{
-		let node = self.inner.lock().unwrap();
-
-		let mut list = Vec::new();
-		let new_transform = transform * node.transform;
-
-		if let Some(primitive) = node.primitive.clone() {
-			if let Some(material) = node.material.clone() {
-				list.push(Object::new(
-					node._name.clone(),
-					id,
-					&new_transform,
-					primitive,
-					material,
-				));
-			}
-		}
-
-		let mut child_id = id + 1;
-
-		for child in &node.children {
-			let (mut objects, new_id) =
-				child.convert_to_object_list_inner(&new_transform, child_id);
-			list.append(&mut objects);
-			child_id = new_id;
-		}
-
-		(list, child_id)
+		self.convert_to_object_list_private(&Matrix4::identity())
 	}
 
 	pub fn set_primitive<T: Primitive + 'static>(&mut self, primitive: lua::Pointer<T>)
@@ -132,14 +100,56 @@ impl SceneNode
 	pub fn add_child(&mut self, child: SceneNode)
 	{
 		let mut node = self.inner.lock().unwrap();
-
 		node.children.push(child);
 	}
 
-	pub fn lua_new<'lua>(lua: Context<'lua>, lua_name: Value<'lua>) -> rlua::Result<SceneNode>
+	fn convert_to_object_list_private(&self, transform: &Matrix4<f32>) -> Vec<Object>
 	{
-		let name = String::from_lua(lua_name, lua)?;
-		Ok(SceneNode::new(&name))
+		let node = self.inner.lock().unwrap();
+
+		let mut list = Vec::new();
+		let cumulative_transform = transform * node.transform;
+
+		if let Some(object) = self.build_object_with_transform(&node, &cumulative_transform) {
+			list.push(object);
+		}
+
+		for child in &node.children {
+			let mut objects = child.convert_to_object_list_private(&cumulative_transform);
+			list.append(&mut objects);
+		}
+
+		list
+	}
+
+	fn build_object_with_transform(&self, node: &SceneNodeInner, transform: &Matrix4<f32>) -> Option<Object>
+	{
+		if let Some(primitive) = node.primitive.clone() {
+			if let Some(material) = node.material.clone() {
+				let object_number = node.objects_built.replace(node.objects_built.get() + 1);
+				let object_name = format!("<{}>:{}", node.name, object_number);
+
+				return Some(Object::new(
+					object_name,
+					&transform,
+					primitive,
+					material,
+				));
+			}
+		}
+
+		None
+	}
+}
+
+impl Clone for SceneNode
+{
+	fn clone(&self) -> Self
+	{
+		SceneNode {
+			inner: self.inner.clone(),
+
+		}
 	}
 }
 
