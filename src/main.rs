@@ -91,7 +91,6 @@ pub fn render(
 	let eye_4d = Vector4::new(eye.x, eye.y, eye.z, 1.0);
 
 	let frame_sections = Arc::new(Mutex::new(divide_frame(output_width, output_height)));
-	let cpus = num_cpus::get();
 
 	let scene = Arc::new(Scene::new(objects, lights, ambient));
 
@@ -102,13 +101,13 @@ pub fn render(
 	);
 
 	if let Some(p) = &pixel {
-		let (r, g, b) = trace_pixel(p.0, p.1, &stw, &eye_4d, scene.as_ref());
-		image.put_pixel(p.0, p.1, *Rgb::from_slice(&[r, g, b]));
+		let rgb = trace_pixel(p.0, p.1, &stw, &eye_4d, scene.as_ref());
+		image.put_pixel(p.0, p.1, *Rgb::from_slice(&rgb));
 	} else {
 		let rx = {
 			let (tx, rx) = mpsc::channel();
 
-			for _ in 0..cpus {
+			for _ in 0..num_cpus::get() {
 				let frame_sections = Arc::clone(&frame_sections);
 				let tx = mpsc::Sender::clone(&tx);
 				let scene = Arc::clone(&scene);
@@ -170,41 +169,31 @@ fn trace_worker(
 )
 {
 	loop {
-		let frame_section = match frame_sections.lock() {
-			Ok(mut sections) => match sections.pop() {
-				Some(section) => section,
+		let frame_section = {
+			let mut frame_sections = frame_sections.lock().unwrap();
+
+			match frame_sections.pop() {
+				Some(frame_section) => frame_section,
 				None => break,
-			},
-			Err(_) => {
-				println!("Frame section lock is poisoned! Thread exiting.");
-				break;
 			}
 		};
 
 		for x in frame_section.x..frame_section.x + frame_section.width {
 			for y in frame_section.y..frame_section.y + frame_section.height {
-				let (r, g, b) = trace_pixel(x, y, &stw, &eye, &scene);
+				let rgb = trace_pixel(x, y, &stw, &eye, &scene);
 
-				if let Err(_) = tx.send(PixelColour {
+				tx.send(PixelColour {
 					x: x,
 					y: y,
-					rgb: [r, g, b],
-				}) {
-					println!("Receiver closed unexpectedly! Thread exiting.");
-					break;
-				}
+					rgb: rgb,
+				})
+				.unwrap();
 			}
 		}
 	}
 }
 
-fn trace_pixel(
-	x: u32,
-	y: u32,
-	stw: &Matrix4<f32>,
-	eye: &Vector4<f32>,
-	scene: &Scene,
-) -> (u8, u8, u8)
+fn trace_pixel(x: u32, y: u32, stw: &Matrix4<f32>, eye: &Vector4<f32>, scene: &Scene) -> [u8; 3]
 {
 	let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
 	let ray = Ray::new(eye, &pworld);
@@ -218,7 +207,7 @@ fn trace_pixel(
 	let g = (255.0 * colour_vec[1].min(1.0)) as u8;
 	let b = (255.0 * colour_vec[2].min(1.0)) as u8;
 
-	(r, g, b)
+	[r, g, b]
 }
 
 fn create_screen_to_world_matrix(
