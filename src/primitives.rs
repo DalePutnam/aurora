@@ -29,9 +29,9 @@ impl NonhierSphere
 
 impl Primitive for NonhierSphere
 {
-	fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit>
+	fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
 	{
-		sphere_intersect(&self.position, self.radius, ray, transform)
+		sphere_intersect(self.position, self.radius, ray, transform)
 	}
 
 	fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>)
@@ -56,9 +56,9 @@ impl Sphere
 
 impl Primitive for Sphere
 {
-	fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit>
+	fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
 	{
-		sphere_intersect(&Vector4::new(0.0, 0.0, 0.0, 1.0), 1.0, ray, transform)
+		sphere_intersect(Vector4::new(0.0, 0.0, 0.0, 1.0), 1.0, ray, transform)
 	}
 
 	fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>)
@@ -71,10 +71,10 @@ impl Primitive for Sphere
 }
 
 fn sphere_intersect(
-	position: &Vector4<f32>,
+	position: Vector4<f32>,
 	radius: f32,
 	ray: &Ray,
-	transform: &Matrix4<f32>,
+	transform: Matrix4<f32>,
 ) -> Option<Hit>
 {
 	let point = transform * ray.point();
@@ -114,7 +114,7 @@ fn sphere_intersect(
 					n = -n;
 				}
 
-				n = math::transform_normals(&n, &transform);
+				n = math::transform_normals(n, transform);
 
 				Some(Hit {
 					normal: n,
@@ -146,9 +146,9 @@ impl NonhierBox
 
 impl Primitive for NonhierBox
 {
-	fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit>
+	fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
 	{
-		box_intersect(&self.position, self.size, ray, transform)
+		box_intersect(self.position, self.size, ray, transform)
 	}
 
 	fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>)
@@ -170,9 +170,9 @@ impl Cube
 
 impl Primitive for Cube
 {
-	fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> Option<Hit>
+	fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
 	{
-		box_intersect(&Vector4::new(0.0, 0.0, 0.0, 1.0), 1.0, ray, transform)
+		box_intersect(Vector4::new(0.0, 0.0, 0.0, 1.0), 1.0, ray, transform)
 	}
 
 	fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>)
@@ -185,10 +185,10 @@ impl Primitive for Cube
 }
 
 fn box_intersect(
-	position: &Vector4<f32>,
+	position: Vector4<f32>,
 	size: f32,
 	ray: &Ray,
-	transform: &Matrix4<f32>,
+	transform: Matrix4<f32>,
 ) -> Option<Hit>
 {
 	enum Faces
@@ -279,7 +279,7 @@ fn box_intersect(
 		Faces::Back => Vector4::new(0.0, 0.0, -1.0, 0.0),
 	};
 
-	let world_normal = math::transform_normals(&local_normal, &transform);
+	let world_normal = math::transform_normals(local_normal, transform);
 
 	// TODO: UV value calculation
 

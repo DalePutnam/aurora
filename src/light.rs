@@ -11,23 +11,23 @@ pub struct Light
 
 impl Light
 {
-	pub fn new(position: &Vector3<f32>, colour: &Vector3<f32>, falloff: &Vector3<f32>) -> Self
+	pub fn new(position: Vector3<f32>, colour: Vector3<f32>, falloff: Vector3<f32>) -> Self
 	{
 		Light {
 			position: Vector4::<f32>::new(position.x, position.y, position.z, 1.0),
-			colour: *colour,
-			falloff: *falloff,
+			colour: colour,
+			falloff: falloff,
 		}
 	}
 
-	pub fn get_position(&self) -> &Vector4<f32>
+	pub fn get_position(&self) -> Vector4<f32>
 	{
-		&self.position
+		self.position
 	}
 
-	pub fn get_colour(&self) -> &Vector3<f32>
+	pub fn get_colour(&self) -> Vector3<f32>
 	{
-		&self.colour
+		self.colour
 	}
 
 	pub fn attenuate(&self, distance: f32) -> Vector3<f32>

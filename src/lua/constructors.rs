@@ -170,9 +170,9 @@ impl Light
 		let falloff = lua::Vector3::from_lua(lua_falloff, lua)?;
 
 		Ok(Light::new(
-			&na::Vector3::from(position),
-			&na::Vector3::from(colour),
-			&na::Vector3::from(falloff),
+			na::Vector3::from(position),
+			na::Vector3::from(colour),
+			na::Vector3::from(falloff),
 		))
 	}
 }

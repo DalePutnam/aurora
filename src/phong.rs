@@ -29,8 +29,8 @@ impl Phong
 
 	fn calculate_diffuse(
 		&self,
-		contact_point: &Vector4<f32>,
-		normal: &Vector4<f32>,
+		contact_point: Vector4<f32>,
+		normal: Vector4<f32>,
 		light: &Light,
 	) -> Vector3<f32>
 	{
@@ -51,9 +51,9 @@ impl Phong
 
 	fn calculate_specular(
 		&self,
-		contact_point: &Vector4<f32>,
-		eye: &Vector4<f32>,
-		normal: &Vector4<f32>,
+		contact_point: Vector4<f32>,
+		eye: Vector4<f32>,
+		normal: Vector4<f32>,
 		light: &Light,
 	) -> Vector3<f32>
 	{
@@ -90,7 +90,7 @@ impl BSDF for Phong
 		let contact_point = ray.origin() + (hit.intersect * (ray.point() - ray.origin()));
 
 		for light in scene.get_lights().iter() {
-			let shadow_ray = Ray::new(&contact_point, light.get_position());
+			let shadow_ray = Ray::new(contact_point, light.get_position());
 
 			if let Some((shadow_hit, _)) = scene.check_hit(&shadow_ray) {
 				if shadow_hit.intersect <= 1.0 {
@@ -98,8 +98,8 @@ impl BSDF for Phong
 				}
 			}
 
-			dc += self.calculate_diffuse(&contact_point, &hit.normal, &light);
-			sc += self.calculate_specular(&contact_point, &ray.origin(), &hit.normal, &light);
+			dc += self.calculate_diffuse(contact_point, hit.normal, &light);
+			sc += self.calculate_specular(contact_point, ray.origin(), hit.normal, &light);
 		}
 
 		ac + dc + sc

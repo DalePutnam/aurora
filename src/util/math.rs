@@ -5,7 +5,7 @@ use na::U3;
 const EPSILON: f32 = 0.0001;
 
 #[inline(always)]
-pub fn cross_4d(a: &Vector4<f32>, b: &Vector4<f32>) -> Vector4<f32>
+pub fn cross_4d(a: Vector4<f32>, b: Vector4<f32>) -> Vector4<f32>
 {
 	let a3 = a.fixed_rows::<U3>(0);
 	let b3 = b.fixed_rows::<U3>(0);
@@ -16,7 +16,7 @@ pub fn cross_4d(a: &Vector4<f32>, b: &Vector4<f32>) -> Vector4<f32>
 }
 
 #[inline(always)]
-pub fn transform_normals(normal: &Vector4<f32>, transform: &Matrix4<f32>) -> Vector4<f32>
+pub fn transform_normals(normal: Vector4<f32>, transform: Matrix4<f32>) -> Vector4<f32>
 {
 	let n3 = normal.fixed_rows::<U3>(0);
 	let t33 = transform.fixed_slice::<U3, U3>(0, 0);

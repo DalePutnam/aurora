@@ -50,7 +50,7 @@ impl SceneNode
 
 	pub fn convert_to_object_list(&self) -> Vec<Object>
 	{
-		self.convert_to_object_list_private(&Matrix4::identity())
+		self.convert_to_object_list_private(Matrix4::identity())
 	}
 
 	pub fn set_primitive<T: Primitive + 'static>(&mut self, primitive: lua::Pointer<T>)
@@ -81,19 +81,19 @@ impl SceneNode
 		node.transform = rotation_matrix * node.transform;
 	}
 
-	pub fn scale(&mut self, amount: &Vector3<f32>)
+	pub fn scale(&mut self, amount: Vector3<f32>)
 	{
 		let mut node = self.inner.lock().unwrap();
 
-		let scale_matrix = Matrix4::new_nonuniform_scaling(amount);
+		let scale_matrix = Matrix4::new_nonuniform_scaling(&amount);
 		node.transform = scale_matrix * node.transform;
 	}
 
-	pub fn translate(&mut self, amount: &Vector3<f32>)
+	pub fn translate(&mut self, amount: Vector3<f32>)
 	{
 		let mut node = self.inner.lock().unwrap();
 
-		let translate_matrix = Matrix4::new_translation(amount);
+		let translate_matrix = Matrix4::new_translation(&amount);
 		node.transform = translate_matrix * node.transform;
 	}
 
@@ -103,26 +103,26 @@ impl SceneNode
 		node.children.push(child);
 	}
 
-	fn convert_to_object_list_private(&self, transform: &Matrix4<f32>) -> Vec<Object>
+	fn convert_to_object_list_private(&self, transform: Matrix4<f32>) -> Vec<Object>
 	{
 		let node = self.inner.lock().unwrap();
 
 		let mut list = Vec::new();
 		let cumulative_transform = transform * node.transform;
 
-		if let Some(object) = self.build_object_with_transform(&node, &cumulative_transform) {
+		if let Some(object) = self.build_object_with_transform(&node, cumulative_transform) {
 			list.push(object);
 		}
 
 		for child in &node.children {
-			let mut objects = child.convert_to_object_list_private(&cumulative_transform);
+			let mut objects = child.convert_to_object_list_private(cumulative_transform);
 			list.append(&mut objects);
 		}
 
 		list
 	}
 
-	fn build_object_with_transform(&self, node: &SceneNodeInner, transform: &Matrix4<f32>) -> Option<Object>
+	fn build_object_with_transform(&self, node: &SceneNodeInner, transform: Matrix4<f32>) -> Option<Object>
 	{
 		if let Some(primitive) = node.primitive.clone() {
 			if let Some(material) = node.material.clone() {
@@ -131,7 +131,7 @@ impl SceneNode
 
 				return Some(Object::new(
 					object_name,
-					&transform,
+					transform,
 					primitive,
 					material,
 				));
@@ -179,7 +179,7 @@ impl UserData for SceneNode
 			let z = f32::from_lua(lua_z, lua)?;
 			let amount = Vector3::new(x, y, z);
 
-			lua_node.scale(&amount);
+			lua_node.scale(amount);
 
 			Ok(())
 		});
@@ -190,7 +190,7 @@ impl UserData for SceneNode
 			let z = f32::from_lua(lua_z, lua)?;
 			let amount = Vector3::new(x, y, z);
 
-			lua_node.translate(&amount);
+			lua_node.translate(amount);
 
 			Ok(())
 		});

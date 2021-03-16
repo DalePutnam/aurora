@@ -12,12 +12,12 @@ pub struct Ray
 }
 
 impl Ray {
-	pub fn new(origin: &Vector4<f32>, point: &Vector4<f32>) -> Self
+	pub fn new(origin: Vector4<f32>, point: Vector4<f32>) -> Self
 	{
 		Ray {
 			id: NEXT_RAY_ID.fetch_add(1, Ordering::Relaxed),
-			point: *point,
-			origin: *origin
+			point: point,
+			origin: origin
 		}
 	}
 
@@ -25,12 +25,12 @@ impl Ray {
 		self.id
 	}
 
-	pub fn point(&self) -> &Vector4<f32> {
-		&self.point
+	pub fn point(&self) -> Vector4<f32> {
+		self.point
 	}
 
-	pub fn origin(&self) -> &Vector4<f32> {
-		&self.origin
+	pub fn origin(&self) -> Vector4<f32> {
+		self.origin
 	}
 }
 

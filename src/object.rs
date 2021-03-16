@@ -25,14 +25,14 @@ impl Object
 {
 	pub fn new(
 		name: String,
-		transform: &Matrix4<f32>,
+		transform: Matrix4<f32>,
 		primitive: Arc<dyn Primitive>,
 		material: Arc<Material>,
 	) -> Self
 	{
 		// Get min/max coordinates in model space
 		let (min, max) = primitive.get_extents();
-		let bounding_box = BoundingBox::new(&min, &max);
+		let bounding_box = BoundingBox::new(min, max);
 
 		Object {
 			name: name,
@@ -54,9 +54,9 @@ impl Object
 		&self.bounding_box
 	}
 
-	pub fn get_transform(&self) -> &Matrix4<f32>
+	pub fn get_transform(&self) -> Matrix4<f32>
 	{
-		&self.transform
+		self.transform
 	}
 
 	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)>
@@ -65,8 +65,8 @@ impl Object
 			return None;
 		}
 
-		if self.bounding_box.hit(ray, &self.transform) {
-			if let Some(hit) = self.primitive.hit(ray, &self.transform) {
+		if self.bounding_box.hit(ray, self.transform) {
+			if let Some(hit) = self.primitive.hit(ray, self.transform) {
 				Some((hit, &self.material))
 			} else {
 				None

@@ -33,8 +33,8 @@ impl CookTorrance
 
 	fn calculate_diffuse(
 		&self,
-		contact_point: &Vector4<f32>,
-		normal: &Vector4<f32>,
+		contact_point: Vector4<f32>,
+		normal: Vector4<f32>,
 		light: &Light,
 	) -> Vector3<f32>
 	{
@@ -52,9 +52,9 @@ impl CookTorrance
 
 	fn calculate_specular(
 		&self,
-		contact_point: &Vector4<f32>,
-		eye: &Vector4<f32>,
-		normal: &Vector4<f32>,
+		contact_point: Vector4<f32>,
+		eye: Vector4<f32>,
+		normal: Vector4<f32>,
 		light: &Light,
 	) -> Vector3<f32>
 	{
@@ -76,9 +76,9 @@ impl CookTorrance
 			return Vector3::new(0.0, 0.0, 0.0);
 		}
 
-		let d = ggx_distribution(&h, &n, self.roughness);
-		let g = ggx_geometry(&v, &l, &h, &n, self.roughness);
-		let f = fresnel(&v, &h, self.refractive_index);
+		let d = ggx_distribution(h, n, self.roughness);
+		let g = ggx_geometry(v, l, h, n, self.roughness);
+		let f = fresnel(v, h, self.refractive_index);
 
 		let specular = ((d * g * f) / (4.0 * nv)) * (1.0 - self.diffuse);
 
@@ -97,7 +97,7 @@ impl BSDF for CookTorrance
 		let contact_point = ray.origin() + (hit.intersect * (ray.point() - ray.origin()));
 
 		for light in scene.get_lights().iter() {
-			let shadow_ray = Ray::new(&contact_point, light.get_position());
+			let shadow_ray = Ray::new(contact_point, light.get_position());
 
 			if let Some((shadow_hit, _)) = scene.check_hit(&shadow_ray) {
 				if shadow_hit.intersect <= 1.0 {
@@ -105,8 +105,8 @@ impl BSDF for CookTorrance
 				}
 			}
 
-			dc += self.calculate_diffuse(&contact_point, &hit.normal, &light);
-			sc += self.calculate_specular(&contact_point, &ray.origin(), &hit.normal, &light);
+			dc += self.calculate_diffuse(contact_point, hit.normal, &light);
+			sc += self.calculate_specular(contact_point, ray.origin(), hit.normal, &light);
 		}
 
 		ac + dc + sc
@@ -122,7 +122,7 @@ fn chi(a: f32) -> f32
 	}
 }
 
-fn ggx_distribution(half: &Vector4<f32>, normal: &Vector4<f32>, alpha: f32) -> f32
+fn ggx_distribution(half: Vector4<f32>, normal: Vector4<f32>, alpha: f32) -> f32
 {
 	let a2 = alpha.powi(2);
 	let hn = half.dot(&normal);
@@ -132,10 +132,10 @@ fn ggx_distribution(half: &Vector4<f32>, normal: &Vector4<f32>, alpha: f32) -> f
 }
 
 fn ggx_geometry(
-	view: &Vector4<f32>,
-	light: &Vector4<f32>,
-	half: &Vector4<f32>,
-	normal: &Vector4<f32>,
+	view: Vector4<f32>,
+	light: Vector4<f32>,
+	half: Vector4<f32>,
+	normal: Vector4<f32>,
 	alpha: f32,
 ) -> f32
 {
@@ -144,9 +144,9 @@ fn ggx_geometry(
 }
 
 fn ggx_geometry_partial(
-	direction: &Vector4<f32>,
-	half: &Vector4<f32>,
-	normal: &Vector4<f32>,
+	direction: Vector4<f32>,
+	half: Vector4<f32>,
+	normal: Vector4<f32>,
 	alpha: f32,
 ) -> f32
 {
@@ -159,7 +159,7 @@ fn ggx_geometry_partial(
 	(chi(dh / dn) * 2.0) / (1.0 + (1.0 + (a2 * tan2)).sqrt())
 }
 
-fn fresnel(view: &Vector4<f32>, half: &Vector4<f32>, ior: f32) -> f32
+fn fresnel(view: Vector4<f32>, half: Vector4<f32>, ior: f32) -> f32
 {
 	let f0 = (ior - 1.0).powi(2) / (ior + 1.0).powi(2);
 
