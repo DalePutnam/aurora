@@ -1,7 +1,9 @@
 use std::fs::File;
 use std::io::Read;
 
+use cli;
 use lua;
+use render;
 use rlua::Context;
 use rlua::FromLua;
 use rlua::Lua;
@@ -22,10 +24,10 @@ pub struct SceneBuilder
 
 impl SceneBuilder
 {
-	pub fn new(pixel: Option<(u32, u32)>) -> Self
+	pub fn new(parameters: cli::Parameters) -> Self
 	{
 		let mut lua = Lua::new();
-		SceneBuilder::initialize_environment(&mut lua, pixel);
+		SceneBuilder::initialize_environment(&mut lua, parameters);
 
 		SceneBuilder { lua: lua }
 	}
@@ -54,7 +56,7 @@ impl SceneBuilder
 		}
 	}
 
-	fn initialize_environment(lua: &mut Lua, pixel: Option<(u32, u32)>)
+	fn initialize_environment(lua: &mut Lua, parameters: cli::Parameters)
 	{
 		let result = lua.context(|lua_ctx| -> rlua::Result<()> {
 			let globals = lua_ctx.globals();
@@ -132,7 +134,7 @@ impl SceneBuilder
 							lua_fov_y,
 							lua_ambient,
 							lua_lights,
-							pixel,
+							&parameters,
 						)
 					},
 				)
@@ -179,7 +181,7 @@ impl SceneBuilder
 		lua_fov_y: Value<'lua>,
 		lua_ambient: Value<'lua>,
 		lua_lights: Value<'lua>,
-		pixel: Option<(u32, u32)>,
+		cli_parameters: &cli::Parameters,
 	) -> rlua::Result<()>
 	{
 		let objects = match lua_scene_root {
@@ -221,19 +223,20 @@ impl SceneBuilder
 			}
 		};
 
-		::render(
-			objects,
-			output_name,
-			width,
-			height,
-			na::Vector3::from(eye),
-			na::Vector3::from(view),
-			na::Vector3::from(up),
-			fov_y,
-			na::Vector3::from(ambient),
-			lights,
-			pixel,
-		);
+		let render_parameters = render::Parameters {
+			objects: objects,
+			lights: lights,
+			output_file: cli_parameters.output_file.clone().unwrap_or(output_name),
+			resolution: cli_parameters.resolution.unwrap_or((width, height)),
+			eye_vector: na::Vector3::from(eye),
+			view_vector: na::Vector3::from(view),
+			up_vector: na::Vector3::from(up),
+			vertical_fov: fov_y,
+			ambient_light: na::Vector3::from(ambient),
+			single_pixel: cli_parameters.single_pixel,
+		};
+
+		render::render(render_parameters);
 
 		Ok(())
 	}
