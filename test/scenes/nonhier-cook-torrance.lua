@@ -1,9 +1,9 @@
 -- A simple scene with some miscellaneous geometry.
 
-mat1 = gr.cook_torrance({0.7, 1.0, 0.7}, 0.7, 0.4, 2.4)
-mat2 = gr.cook_torrance({0.5, 0.5, 0.5}, 0.7, 0.4, 2.4)
-mat3 = gr.cook_torrance({1.0, 0.6, 0.1}, 0.7, 0.4, 2.4)
-mat4 = gr.cook_torrance({0.7, 0.6, 1.0}, 0.7, 0.4, 2.4)
+mat1 = gr.cook_torrance({0.7, 1.0, 0.7}, {0.7, 0.7, 0.7}, 0.9, 0.25, 1.58, 0)
+mat2 = gr.cook_torrance({0.5, 0.5, 0.5}, {0.7, 0.7, 0.7}, 0.9, 0.25, 1.58, 0)
+mat3 = gr.cook_torrance({1.0, 0.6, 0.1}, {0.7, 0.7, 0.7}, 0.9, 0.25, 1.58, 0)
+mat4 = gr.cook_torrance({0.7, 0.6, 1.0}, {0.7, 0.7, 0.7}, 0.9, 0.25, 1.58, 0)
 
 scene_root = gr.node('root')
 
@@ -42,4 +42,4 @@ orange_light = gr.light({400.0, 100.0, 150.0}, {0.7, 0.0, 0.7}, {1, 0, 0})
 
 gr.render(scene_root, 'nonhier-cook-torrance.png', 1024, 1024,
    {0, 0, 800}, {0, 0, -1}, {0, 1, 0}, 50,
-   {0.3, 0.3, 0.3}, {white_light, orange_light})
+   {0.1, 0.1, 0.1}, {white_light, orange_light})

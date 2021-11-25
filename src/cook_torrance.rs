@@ -13,21 +13,32 @@ use Scene;
 #[derive(fmt::Debug)]
 pub struct CookTorrance
 {
-	colour: Vector3<f32>,
-	diffuse: f32,
+	diffuse_colour: Vector3<f32>,
+	spectral_colour: Vector3<f32>,
+	diffuse_fraction: f32,
 	roughness: f32,
 	refractive_index: f32,
+	extinction_coefficient: f32,
 }
 
 impl CookTorrance
 {
-	pub fn new(colour: Vector3<f32>, diffuse: f32, roughness: f32, refractive_index: f32) -> Self
+	pub fn new(
+		diffuse_colour: Vector3<f32>,
+		spectral_colour: Vector3<f32>,
+		diffuse_fraction: f32,
+		roughness: f32,
+		refractive_index: f32,
+		extinction_coefficient: f32,
+	) -> Self
 	{
 		CookTorrance {
-			colour: colour,
-			diffuse: diffuse,
-			roughness: roughness * roughness,
+			diffuse_colour: diffuse_colour,
+			spectral_colour: spectral_colour,
+			diffuse_fraction: diffuse_fraction,
+			roughness: roughness,
 			refractive_index: refractive_index,
+			extinction_coefficient: extinction_coefficient,
 		}
 	}
 
@@ -38,16 +49,19 @@ impl CookTorrance
 		light: &Light,
 	) -> Vector3<f32>
 	{
-		if math::near_zero(self.diffuse) {
+		if math::near_zero(self.diffuse_fraction) {
 			return Vector3::new(0.0, 0.0, 0.0);
 		}
 
 		let light_vector = light.get_position() - contact_point;
 		let distance = light_vector.dot(&light_vector).sqrt();
-		let diffuse =
-			f32::max(light_vector.normalize().dot(&normal.normalize()), 0.0) * self.diffuse;
+		let diffuse_fraction = f32::max(light_vector.normalize().dot(&normal.normalize()), 0.0)
+			* self.diffuse_fraction;
 
-		light.attenuate(distance).component_mul(&self.colour) * diffuse
+		light
+			.attenuate(distance)
+			.component_mul(&self.diffuse_colour)
+			* diffuse_fraction
 	}
 
 	fn calculate_specular(
@@ -58,7 +72,9 @@ impl CookTorrance
 		light: &Light,
 	) -> Vector3<f32>
 	{
-		if math::near_zero(1.0 - self.diffuse) {
+		let specular_fraction = 1.0 - self.diffuse_fraction;
+
+		if math::near_zero(specular_fraction) {
 			return Vector3::new(0.0, 0.0, 0.0);
 		}
 
@@ -72,17 +88,35 @@ impl CookTorrance
 
 		let nv = n.dot(&v);
 
-		if nv < 0.05 {
+		if math::near_zero(nv) {
 			return Vector3::new(0.0, 0.0, 0.0);
 		}
 
+		let fresnel_n =
+			fresnel_from_refractive_index(1.0, self.refractive_index, self.extinction_coefficient);
+
+		let fresnel_vh = fresnel_from_refractive_index(
+			v.dot(&h),
+			self.refractive_index,
+			self.extinction_coefficient,
+		);
+
+		let fresnel_red = fresnel_approximation(fresnel_vh, fresnel_n, self.spectral_colour.x);
+		let fresnel_green = fresnel_approximation(fresnel_vh, fresnel_n, self.spectral_colour.y);
+		let fresnel_blue = fresnel_approximation(fresnel_vh, fresnel_n, self.spectral_colour.z);
+
 		let d = ggx_distribution(h, n, self.roughness);
 		let g = ggx_geometry(v, l, h, n, self.roughness);
-		let f = fresnel(v, h, self.refractive_index);
 
-		let specular = ((d * g * f) / (4.0 * nv)) * (1.0 - self.diffuse);
+		let specular_partial = (d * g) / (4.0 * nv);
 
-		light.attenuate(distance).component_mul(&self.colour) * specular
+		let specular_colour = Vector3::new(
+			fresnel_red * specular_partial,
+			fresnel_green * specular_partial,
+			fresnel_blue * specular_partial,
+		);
+
+		light.attenuate(distance).component_mul(&specular_colour) * specular_fraction
 	}
 }
 
@@ -90,7 +124,7 @@ impl BSDF for CookTorrance
 {
 	fn shade_pixel(&self, ray: &Ray, hit: &Hit, scene: &Scene) -> Vector3<f32>
 	{
-		let ac = self.colour.component_mul(&scene.get_ambient());
+		let ac = self.diffuse_colour.component_mul(&scene.get_ambient()) * f32::consts::PI;
 		let mut dc = Vector3::new(0.0, 0.0, 0.0);
 		let mut sc = Vector3::new(0.0, 0.0, 0.0);
 
@@ -159,9 +193,26 @@ fn ggx_geometry_partial(
 	(chi(dh / dn) * 2.0) / (1.0 + (1.0 + (a2 * tan2)).sqrt())
 }
 
-fn fresnel(view: Vector4<f32>, half: Vector4<f32>, ior: f32) -> f32
+fn fresnel_from_refractive_index(
+	cosine_angle: f32,
+	refractive_index: f32,
+	extinction_coefficient: f32,
+) -> f32
 {
-	let f0 = (ior - 1.0).powi(2) / (ior + 1.0).powi(2);
+	let u = cosine_angle;
+	let n = refractive_index;
+	let k = extinction_coefficient;
 
-	f0 + ((1.0 - f0) * (1.0 - view.dot(&half)).powi(5))
+	let k2 = k * k;
+
+	((n - 1.0).powi(2) + 4.0 * n * (1.0 - u).powi(5) + k2) / ((n + 1.0).powi(2) + k2)
+}
+
+fn fresnel_approximation(fresnel: f32, fresnel_normal: f32, reflectance: f32) -> f32
+{
+	let r = reflectance;
+	let nf = fresnel_normal;
+	let f = fresnel;
+
+	r + (1.0 - r) * ((f - nf) / (1.0 - nf))
 }
