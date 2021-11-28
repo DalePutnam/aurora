@@ -14,7 +14,7 @@ use Scene;
 pub struct CookTorrance
 {
 	diffuse_colour: Vector3<f32>,
-	spectral_colour: Vector3<f32>,
+	specular_colour: Vector3<f32>,
 	diffuse_fraction: f32,
 	roughness: f32,
 	refractive_index: f32,
@@ -25,7 +25,7 @@ impl CookTorrance
 {
 	pub fn new(
 		diffuse_colour: Vector3<f32>,
-		spectral_colour: Vector3<f32>,
+		specular_colour: Vector3<f32>,
 		diffuse_fraction: f32,
 		roughness: f32,
 		refractive_index: f32,
@@ -34,7 +34,7 @@ impl CookTorrance
 	{
 		CookTorrance {
 			diffuse_colour: diffuse_colour,
-			spectral_colour: spectral_colour,
+			specular_colour: specular_colour,
 			diffuse_fraction: diffuse_fraction,
 			roughness: roughness,
 			refractive_index: refractive_index,
@@ -101,9 +101,9 @@ impl CookTorrance
 			self.extinction_coefficient,
 		);
 
-		let fresnel_red = fresnel_approximation(fresnel_vh, fresnel_n, self.spectral_colour.x);
-		let fresnel_green = fresnel_approximation(fresnel_vh, fresnel_n, self.spectral_colour.y);
-		let fresnel_blue = fresnel_approximation(fresnel_vh, fresnel_n, self.spectral_colour.z);
+		let fresnel_red = fresnel_approximation(fresnel_vh, fresnel_n, self.specular_colour.x);
+		let fresnel_green = fresnel_approximation(fresnel_vh, fresnel_n, self.specular_colour.y);
+		let fresnel_blue = fresnel_approximation(fresnel_vh, fresnel_n, self.specular_colour.z);
 
 		let d = ggx_distribution(h, n, self.roughness);
 		let g = ggx_geometry(v, l, h, n, self.roughness);
