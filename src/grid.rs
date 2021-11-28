@@ -90,6 +90,8 @@ impl Grid
 		let objects = Arc::new(objects);
 		let cells_per_thread = cell_list.len() / num_cpus::get();
 
+		let mut workers = Vec::new();
+
 		let rx = {
 			let (tx, rx) = mpsc::channel();
 
@@ -106,16 +108,25 @@ impl Grid
 				let objects = Arc::clone(&objects);
 				let tx = mpsc::Sender::clone(&tx);
 
-				thread::spawn(move || {
+				let worker = thread::spawn(move || {
 					Grid::fill_worker(grid_min, grid_cell_size, cell_list, &objects, tx);
 				});
+
+				workers.push(worker);
 			}
 
 			rx
 		};
 
-		// Collect populated cells and sort them back into the correct order
+		// Collect populated cells
 		let mut cells: Vec<((usize, usize, usize), GridCell)> = rx.into_iter().collect();
+
+		// Make sure workers are fully cleaned up before continuing
+		for worker in workers {
+			worker.join().unwrap();
+		}
+
+		// Populated cells are in an arbitrary order, so we sort them by coordinates
 		cells.sort_unstable_by(|cell1, cell2| -> Ordering {
 			let ((x1, y1, z1), _) = cell1;
 			let ((x2, y2, z2), _) = cell2;
