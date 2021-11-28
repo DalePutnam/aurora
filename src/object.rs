@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use na::Matrix4;
 use thread_local::ThreadLocal;
-use traits::Primitive;
+use primitives::Primitive;
 use BoundingBox;
 use Hit;
 use Material;

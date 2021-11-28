@@ -12,7 +12,7 @@ use rlua::FromLua;
 use rlua::UserData;
 use rlua::UserDataMethods;
 use rlua::Value;
-use traits::Primitive;
+use primitives::Primitive;
 use Material;
 use Object;
 

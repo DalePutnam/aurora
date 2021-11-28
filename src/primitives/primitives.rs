@@ -4,7 +4,7 @@ use std::fmt;
 use na::Matrix4;
 use na::Vector3;
 use na::Vector4;
-use traits::Primitive;
+use primitives::Primitive;
 use util::math;
 use Hit;
 use Ray;

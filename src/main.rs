@@ -7,12 +7,12 @@ extern crate rlua;
 extern crate thread_local;
 extern crate clap;
 
-pub use self::bounding_box::BoundingBox;
+pub use self::primitives::BoundingBox;
 pub use self::cook_torrance::CookTorrance;
 pub use self::grid::Grid;
 pub use self::light::Light;
 pub use self::material::Material;
-pub use self::mesh::Mesh;
+pub use self::primitives::Mesh;
 pub use self::object::Object;
 pub use self::phong::Phong;
 pub use self::primitives::Cube;
@@ -23,13 +23,11 @@ pub use self::ray::Hit;
 pub use self::ray::Ray;
 pub use self::scene::Scene;
 
-pub mod bounding_box;
 pub mod cook_torrance;
 pub mod grid;
 pub mod light;
 pub mod lua;
 pub mod material;
-pub mod mesh;
 pub mod object;
 pub mod phong;
 pub mod primitives;

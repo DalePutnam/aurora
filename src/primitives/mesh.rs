@@ -6,7 +6,7 @@ use std::io::BufReader;
 
 use na::Matrix4;
 use na::Vector4;
-use traits::Primitive;
+use primitives::Primitive;
 use util::math;
 use Hit;
 use Ray;
