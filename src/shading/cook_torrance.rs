@@ -3,7 +3,7 @@ use std::fmt;
 
 use na::Vector3;
 use na::Vector4;
-use traits::BSDF;
+use shading::BSDF;
 use util::math;
 use Hit;
 use Light;

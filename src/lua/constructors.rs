@@ -6,10 +6,10 @@ use primitives::Sphere;
 use rlua::Context;
 use rlua::FromLua;
 use rlua::Value;
-use CookTorrance;
+use shading::CookTorrance;
+use shading::Phong;
 use Light;
 use Material;
-use Phong;
 
 use super::SceneNode;
 
@@ -114,8 +114,10 @@ impl Sphere
 
 impl Cube
 {
-	pub fn lua_unit_cube<'lua>(lua: Context<'lua>, lua_name: Value<'lua>)
-		-> rlua::Result<lua::SceneNode>
+	pub fn lua_unit_cube<'lua>(
+		lua: Context<'lua>,
+		lua_name: Value<'lua>,
+	) -> rlua::Result<lua::SceneNode>
 	{
 		let name = String::from_lua(lua_name, lua)?;
 

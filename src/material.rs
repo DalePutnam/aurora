@@ -1,7 +1,7 @@
 use std::fmt;
 
 use na::Vector3;
-use traits::BSDF;
+use shading::BSDF;
 use Hit;
 use Ray;
 use Scene;

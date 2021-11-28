@@ -7,28 +7,24 @@ extern crate rlua;
 extern crate thread_local;
 extern crate clap;
 
-pub use self::cook_torrance::CookTorrance;
 pub use self::grid::Grid;
 pub use self::light::Light;
 pub use self::material::Material;
 pub use self::object::Object;
-pub use self::phong::Phong;
 pub use self::ray::Hit;
 pub use self::ray::Ray;
 pub use self::scene::Scene;
 
-pub mod cook_torrance;
+pub mod shading;
 pub mod grid;
 pub mod light;
 pub mod lua;
 pub mod material;
 pub mod object;
-pub mod phong;
 pub mod primitives;
 pub mod ray;
 pub mod render;
 pub mod scene;
-pub mod traits;
 pub mod util;
 pub mod cli;
 

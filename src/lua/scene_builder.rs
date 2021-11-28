@@ -11,9 +11,9 @@ use rlua::Context;
 use rlua::FromLua;
 use rlua::Lua;
 use rlua::Value;
-use CookTorrance;
+use shading::CookTorrance;
+use shading::Phong;
 use Light;
-use Phong;
 
 pub struct SceneBuilder
 {
