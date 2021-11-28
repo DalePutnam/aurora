@@ -1,17 +1,15 @@
 use lua;
 use na;
+use primitives::Cube;
+use primitives::Mesh;
+use primitives::Sphere;
 use rlua::Context;
 use rlua::FromLua;
 use rlua::Value;
 use CookTorrance;
-use Cube;
 use Light;
 use Material;
-use Mesh;
-use NonhierBox;
-use NonhierSphere;
 use Phong;
-use Sphere;
 
 use super::SceneNode;
 
@@ -40,7 +38,14 @@ impl CookTorrance
 {
 	pub fn lua_new<'lua>(
 		lua: Context<'lua>,
-		lua_value: (Value<'lua>, Value<'lua>, Value<'lua>, Value<'lua>, Value<'lua>, Value<'lua>),
+		lua_value: (
+			Value<'lua>,
+			Value<'lua>,
+			Value<'lua>,
+			Value<'lua>,
+			Value<'lua>,
+			Value<'lua>,
+		),
 	) -> rlua::Result<lua::Pointer<Material>>
 	{
 		let (
@@ -65,12 +70,12 @@ impl CookTorrance
 			diffuse_fraction,
 			roughness,
 			refractive_index,
-			extinction_coefficient
+			extinction_coefficient,
 		))))
 	}
 }
 
-impl NonhierSphere
+impl Sphere
 {
 	pub fn lua_new<'lua>(
 		lua: Context<'lua>,
@@ -84,16 +89,44 @@ impl NonhierSphere
 		let radius = f32::from_lua(lua_radius, lua)?;
 
 		let mut node = lua::SceneNode::new(&name);
-		let nh_sphere = lua::Pointer::new(NonhierSphere::new(position.into(), radius));
+		let nh_sphere = lua::Pointer::new(Sphere::new(position.into(), radius));
 
 		node.set_primitive(nh_sphere);
 
 		Ok(node)
 	}
+
+	pub fn lua_unit_sphere<'lua>(
+		lua: Context<'lua>,
+		lua_name: Value<'lua>,
+	) -> rlua::Result<lua::SceneNode>
+	{
+		let name = String::from_lua(lua_name, lua)?;
+
+		let mut node = lua::SceneNode::new(&name);
+		let sphere = lua::Pointer::new(Sphere::unit_sphere());
+
+		node.set_primitive(sphere);
+
+		Ok(node)
+	}
 }
 
-impl NonhierBox
+impl Cube
 {
+	pub fn lua_unit_cube<'lua>(lua: Context<'lua>, lua_name: Value<'lua>)
+		-> rlua::Result<lua::SceneNode>
+	{
+		let name = String::from_lua(lua_name, lua)?;
+
+		let mut node = lua::SceneNode::new(&name);
+		let sphere = lua::Pointer::new(Cube::unit_cube());
+
+		node.set_primitive(sphere);
+
+		Ok(node)
+	}
+
 	pub fn lua_new<'lua>(
 		lua: Context<'lua>,
 		lua_value: (Value<'lua>, Value<'lua>, Value<'lua>),
@@ -106,41 +139,9 @@ impl NonhierBox
 		let size = f32::from_lua(lua_size, lua)?;
 
 		let mut node = lua::SceneNode::new(&name);
-		let nh_box = lua::Pointer::new(NonhierBox::new(position.into(), size));
+		let nh_box = lua::Pointer::new(Cube::new(position.into(), size));
 
 		node.set_primitive(nh_box);
-
-		Ok(node)
-	}
-}
-
-impl Sphere
-{
-	pub fn lua_new<'lua>(lua: Context<'lua>, lua_name: Value<'lua>)
-		-> rlua::Result<lua::SceneNode>
-	{
-		let name = String::from_lua(lua_name, lua)?;
-
-		let mut node = lua::SceneNode::new(&name);
-		let sphere = lua::Pointer::new(Sphere::new());
-
-		node.set_primitive(sphere);
-
-		Ok(node)
-	}
-}
-
-impl Cube
-{
-	pub fn lua_new<'lua>(lua: Context<'lua>, lua_name: Value<'lua>)
-		-> rlua::Result<lua::SceneNode>
-	{
-		let name = String::from_lua(lua_name, lua)?;
-
-		let mut node = lua::SceneNode::new(&name);
-		let sphere = lua::Pointer::new(Cube::new());
-
-		node.set_primitive(sphere);
 
 		Ok(node)
 	}

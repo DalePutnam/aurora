@@ -3,19 +3,17 @@ use std::io::Read;
 
 use cli;
 use lua;
+use primitives::Cube;
+use primitives::Mesh;
+use primitives::Sphere;
 use render;
 use rlua::Context;
 use rlua::FromLua;
 use rlua::Lua;
 use rlua::Value;
 use CookTorrance;
-use Cube;
 use Light;
-use Mesh;
-use NonhierBox;
-use NonhierSphere;
 use Phong;
-use Sphere;
 
 pub struct SceneBuilder
 {
@@ -68,22 +66,22 @@ impl SceneBuilder
 				.expect("Failed to create node constructor");
 
 			let nh_sphere_ctor = lua_ctx
-				.create_function(NonhierSphere::lua_new)
+				.create_function(Sphere::lua_new)
 				.expect("Failed to create nh_sphere constructor");
 
 			// NonhierBox Constructor
 			let nh_box_ctor = lua_ctx
-				.create_function(NonhierBox::lua_new)
+				.create_function(Cube::lua_new)
 				.expect("Failed to create nh_box constructor");
 
 			// Sphere Constructor
 			let sphere_ctor = lua_ctx
-				.create_function(Sphere::lua_new)
+				.create_function(Sphere::lua_unit_sphere)
 				.expect("Failed to create sphere constructor");
 
 			// Cube Constructor
 			let cube_ctor = lua_ctx
-				.create_function(Cube::lua_new)
+				.create_function(Cube::lua_unit_cube)
 				.expect("Failed to create cube constructor");
 
 			// Mesh Constructor

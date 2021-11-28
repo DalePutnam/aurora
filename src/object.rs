@@ -3,9 +3,9 @@ use std::fmt;
 use std::sync::Arc;
 
 use na::Matrix4;
-use thread_local::ThreadLocal;
+use primitives::BoundingBox;
 use primitives::Primitive;
-use BoundingBox;
+use thread_local::ThreadLocal;
 use Hit;
 use Material;
 use Ray;
