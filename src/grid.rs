@@ -13,7 +13,7 @@ use rand;
 use rand::seq::SliceRandom;
 use util::math;
 use Hit;
-use Material;
+use shading::Material;
 use Object;
 use Ray;
 
@@ -156,7 +156,7 @@ impl Grid
 		}
 	}
 
-	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)>
+	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
 	{
 		let ray_direction = ray.point() - ray.origin();
 
@@ -196,7 +196,7 @@ impl Grid
 		);
 
 		let mut cell = self.cell_at(grid_x as usize, grid_y as usize, grid_z as usize);
-		let mut hit: Option<(Hit, &Material)> = None;
+		let mut hit: Option<(Hit, &dyn Material)> = None;
 
 		loop {
 			if let Some(cell_hit) = cell.check_hit(ray) {
@@ -587,11 +587,11 @@ impl GridCell
 		cell
 	}
 
-	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)>
+	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
 	{
 		self.objects
 			.iter()
-			.fold(None, |last_hit, object| -> Option<(Hit, &Material)> {
+			.fold(None, |last_hit, object| -> Option<(Hit, &dyn Material)> {
 				let object = unsafe { object.as_ref() };
 
 				if let Some(hit) = object.check_hit(ray) {

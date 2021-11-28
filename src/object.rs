@@ -5,9 +5,10 @@ use std::sync::Arc;
 use na::Matrix4;
 use primitives::BoundingBox;
 use primitives::Primitive;
+use shading::Material;
 use thread_local::ThreadLocal;
+use std::borrow::Borrow;
 use Hit;
-use Material;
 use Ray;
 
 #[derive(fmt::Debug)]
@@ -17,7 +18,7 @@ pub struct Object
 	transform: Matrix4<f32>,
 	bounding_box: Box<BoundingBox>,
 	primitive: Arc<dyn Primitive>,
-	material: Arc<Material>,
+	material: Arc<dyn Material>,
 	last_seen_ray: ThreadLocal<Cell<Option<u64>>>,
 }
 
@@ -27,7 +28,7 @@ impl Object
 		name: String,
 		transform: Matrix4<f32>,
 		primitive: Arc<dyn Primitive>,
-		material: Arc<Material>,
+		material: Arc<dyn Material>,
 	) -> Self
 	{
 		// Get min/max coordinates in model space
@@ -59,7 +60,7 @@ impl Object
 		self.transform
 	}
 
-	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)>
+	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
 	{
 		if self.ray_previously_visited(ray) {
 			return None;
@@ -67,7 +68,7 @@ impl Object
 
 		if self.bounding_box.hit(ray, self.transform) {
 			if let Some(hit) = self.primitive.hit(ray, self.transform) {
-				Some((hit, &self.material))
+				Some((hit, self.material.borrow()))
 			} else {
 				None
 			}

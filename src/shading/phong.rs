@@ -2,7 +2,7 @@ use std::fmt;
 
 use na::Vector3;
 use na::Vector4;
-use shading::BSDF;
+use shading::Material;
 use Hit;
 use Light;
 use Ray;
@@ -79,7 +79,7 @@ impl Phong
 	}
 }
 
-impl BSDF for Phong
+impl Material for Phong
 {
 	fn shade_pixel(&self, ray: &Ray, hit: &Hit, scene: &Scene) -> Vector3<f32>
 	{

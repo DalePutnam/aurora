@@ -3,7 +3,7 @@ use std::fmt;
 
 use na::Vector3;
 use na::Vector4;
-use shading::BSDF;
+use shading::Material;
 use util::math;
 use Hit;
 use Light;
@@ -120,7 +120,7 @@ impl CookTorrance
 	}
 }
 
-impl BSDF for CookTorrance
+impl Material for CookTorrance
 {
 	fn shade_pixel(&self, ray: &Ray, hit: &Hit, scene: &Scene) -> Vector3<f32>
 	{

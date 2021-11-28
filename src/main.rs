@@ -9,7 +9,6 @@ extern crate clap;
 
 pub use self::grid::Grid;
 pub use self::light::Light;
-pub use self::material::Material;
 pub use self::object::Object;
 pub use self::ray::Hit;
 pub use self::ray::Ray;
@@ -19,7 +18,6 @@ pub mod shading;
 pub mod grid;
 pub mod light;
 pub mod lua;
-pub mod material;
 pub mod object;
 pub mod primitives;
 pub mod ray;

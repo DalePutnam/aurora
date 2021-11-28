@@ -1,8 +1,8 @@
 use na::Vector3;
+use shading::Material;
 use Grid;
 use Hit;
 use Light;
-use Material;
 use Object;
 use Ray;
 
@@ -24,7 +24,7 @@ impl Scene
 		}
 	}
 
-	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &Material)>
+	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
 	{
 		self.grid.check_hit(ray)
 	}
