@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use lua;
 use na;
 use primitives::Cube;
@@ -9,7 +11,6 @@ use rlua::Value;
 use shading::CookTorrance;
 use shading::Phong;
 use Light;
-use Material;
 
 use super::SceneNode;
 
@@ -18,7 +19,7 @@ impl Phong
 	pub fn lua_new<'lua>(
 		lua: Context<'lua>,
 		lua_value: (Value<'lua>, Value<'lua>, Value<'lua>),
-	) -> rlua::Result<lua::Pointer<Material>>
+	) -> rlua::Result<lua::Material>
 	{
 		let (lua_diffuse, lua_specular, lua_shininess) = lua_value;
 
@@ -26,11 +27,11 @@ impl Phong
 		let specular = lua::Vector3::from_lua(lua_specular, lua)?;
 		let shininess = f32::from_lua(lua_shininess, lua)?;
 
-		Ok(lua::Pointer::new(Material::new(Phong::new(
+		Ok(lua::Material::new(Phong::new(
 			na::Vector3::from(diffuse),
 			na::Vector3::from(specular),
 			shininess,
-		))))
+		)))
 	}
 }
 
@@ -46,7 +47,7 @@ impl CookTorrance
 			Value<'lua>,
 			Value<'lua>,
 		),
-	) -> rlua::Result<lua::Pointer<Material>>
+	) -> rlua::Result<lua::Material>
 	{
 		let (
 			lua_diffuse_colour,
@@ -64,14 +65,14 @@ impl CookTorrance
 		let refractive_index = f32::from_lua(lua_refractive_index, lua)?;
 		let extinction_coefficient = f32::from_lua(lua_extinction_coefficient, lua)?;
 
-		Ok(lua::Pointer::new(Material::new(CookTorrance::new(
+		Ok(lua::Material::new(CookTorrance::new(
 			na::Vector3::from(diffuse_colour),
 			na::Vector3::from(specular_colour),
 			diffuse_fraction,
 			roughness,
 			refractive_index,
 			extinction_coefficient,
-		))))
+		)))
 	}
 }
 
@@ -88,10 +89,8 @@ impl Sphere
 		let position = lua::Vector3::from_lua(lua_position, lua)?;
 		let radius = f32::from_lua(lua_radius, lua)?;
 
-		let mut node = lua::SceneNode::new(&name);
-		let nh_sphere = lua::Pointer::new(Sphere::new(position.into(), radius));
-
-		node.set_primitive(nh_sphere);
+		let node =
+			lua::SceneNode::new(&name, Some(Arc::new(Sphere::new(position.into(), radius))));
 
 		Ok(node)
 	}
@@ -103,10 +102,7 @@ impl Sphere
 	{
 		let name = String::from_lua(lua_name, lua)?;
 
-		let mut node = lua::SceneNode::new(&name);
-		let sphere = lua::Pointer::new(Sphere::unit_sphere());
-
-		node.set_primitive(sphere);
+		let node = lua::SceneNode::new(&name, Some(Arc::new(Sphere::unit_sphere())));
 
 		Ok(node)
 	}
@@ -121,10 +117,7 @@ impl Cube
 	{
 		let name = String::from_lua(lua_name, lua)?;
 
-		let mut node = lua::SceneNode::new(&name);
-		let sphere = lua::Pointer::new(Cube::unit_cube());
-
-		node.set_primitive(sphere);
+		let node = lua::SceneNode::new(&name, Some(Arc::new(Cube::unit_cube())));
 
 		Ok(node)
 	}
@@ -140,10 +133,7 @@ impl Cube
 		let position = lua::Vector3::from_lua(lua_position, lua)?;
 		let size = f32::from_lua(lua_size, lua)?;
 
-		let mut node = lua::SceneNode::new(&name);
-		let nh_box = lua::Pointer::new(Cube::new(position.into(), size));
-
-		node.set_primitive(nh_box);
+		let node = lua::SceneNode::new(&name, Some(Arc::new(Cube::new(position.into(), size))));
 
 		Ok(node)
 	}
@@ -161,10 +151,7 @@ impl Mesh
 		let name = String::from_lua(lua_name, lua)?;
 		let file_name = String::from_lua(lua_file_name, lua)?;
 
-		let mut node = lua::SceneNode::new(&name);
-		let mesh = lua::Pointer::new(Mesh::new(&file_name));
-
-		node.set_primitive(mesh);
+		let node = lua::SceneNode::new(&name, Some(Arc::new(Mesh::new(&file_name))));
 
 		Ok(node)
 	}
@@ -196,6 +183,6 @@ impl SceneNode
 	pub fn lua_new<'lua>(lua: Context<'lua>, lua_name: Value<'lua>) -> rlua::Result<SceneNode>
 	{
 		let name = String::from_lua(lua_name, lua)?;
-		Ok(SceneNode::new(&name))
+		Ok(SceneNode::new(&name, None))
 	}
 }

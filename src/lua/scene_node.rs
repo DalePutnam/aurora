@@ -1,19 +1,19 @@
+use std::cell::Cell;
 use std::clone::Clone;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::cell::Cell;
 
 use lua;
 use na::Matrix4;
 use na::Unit;
 use na::Vector3;
+use primitives::Primitive;
 use rlua;
 use rlua::FromLua;
 use rlua::UserData;
 use rlua::UserDataMethods;
 use rlua::Value;
-use primitives::Primitive;
-use Material;
+use shading::Material;
 use Object;
 
 pub struct SceneNodeInner
@@ -22,29 +22,29 @@ pub struct SceneNodeInner
 	transform: Matrix4<f32>,
 	children: Vec<SceneNode>,
 	primitive: Option<Arc<dyn Primitive>>,
-	material: Option<Arc<Material>>,
+	material: Option<Arc<dyn Material>>,
 	objects_built: Cell<usize>,
 }
 
 pub struct SceneNode
 {
-	inner: Arc<Mutex<SceneNodeInner>>
+	inner: Arc<Mutex<SceneNodeInner>>,
 }
 impl SceneNode
 {
-	pub fn new(name: &str) -> Self
+	pub fn new(name: &str, primitive: Option<Arc<dyn Primitive>>) -> Self
 	{
 		let inner = SceneNodeInner {
 			name: name.to_string(),
 			transform: Matrix4::identity(),
 			children: Vec::new(),
-			primitive: None,
+			primitive: primitive,
 			material: None,
-			objects_built: Cell::new(0)
+			objects_built: Cell::new(0),
 		};
 
 		SceneNode {
-			inner: Arc::new(Mutex::new(inner))
+			inner: Arc::new(Mutex::new(inner)),
 		}
 	}
 
@@ -53,16 +53,10 @@ impl SceneNode
 		self.convert_to_object_list_private(Matrix4::identity())
 	}
 
-	pub fn set_primitive<T: Primitive + 'static>(&mut self, primitive: lua::Pointer<T>)
+	pub fn set_material(&mut self, material: Arc<dyn Material>)
 	{
 		let mut node = self.inner.lock().unwrap();
-		node.primitive = Some(Arc::<T>::from(primitive));
-	}
-
-	pub fn set_material(&mut self, material: lua::Pointer<Material>)
-	{
-		let mut node = self.inner.lock().unwrap();
-		node.material = Some(Arc::<Material>::from(material));
+		node.material = Some(material);
 	}
 
 	pub fn rotate(&mut self, axis: char, angle: f32)
@@ -122,19 +116,18 @@ impl SceneNode
 		list
 	}
 
-	fn build_object_with_transform(&self, node: &SceneNodeInner, transform: Matrix4<f32>) -> Option<Object>
+	fn build_object_with_transform(
+		&self,
+		node: &SceneNodeInner,
+		transform: Matrix4<f32>,
+	) -> Option<Object>
 	{
 		if let Some(primitive) = node.primitive.clone() {
 			if let Some(material) = node.material.clone() {
 				let object_number = node.objects_built.replace(node.objects_built.get() + 1);
 				let object_name = format!("<{}>:{}", node.name, object_number);
 
-				return Some(Object::new(
-					object_name,
-					transform,
-					primitive,
-					material,
-				));
+				return Some(Object::new(object_name, transform, primitive, material));
 			}
 		}
 
@@ -148,7 +141,6 @@ impl Clone for SceneNode
 	{
 		SceneNode {
 			inner: self.inner.clone(),
-
 		}
 	}
 }
@@ -212,9 +204,9 @@ impl UserData for SceneNode
 		methods.add_method_mut(
 			"set_material",
 			|_, lua_node, lua_material| match lua_material {
-				Value::UserData(user_data) => match user_data.borrow::<lua::Pointer<Material>>() {
+				Value::UserData(user_data) => match user_data.borrow::<lua::Material>() {
 					Ok(material) => {
-						lua_node.set_material(material.clone());
+						lua_node.set_material(material.get_inner().clone());
 						Ok(())
 					}
 					Err(e) => Err(e),
