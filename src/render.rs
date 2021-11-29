@@ -195,7 +195,35 @@ fn trace_pixel(x: u32, y: u32, stw: Matrix4<f32>, eye: Vector4<f32>, scene: &Sce
 	let ray = Ray::new(eye, pworld);
 
 	let colour_vec = match scene.check_hit(&ray) {
-		Some((hit, material)) => material.shade_pixel(&ray, &hit, scene),
+		Some((hit, material)) => {
+			let contact_point = ray.origin() + (hit.intersect * (ray.point() - ray.origin()));
+			let view_vector = (eye - contact_point).normalize();
+			let normal = hit.normal.normalize();
+
+			let ac = scene.get_ambient().component_mul(&material.ambient_component());
+			let mut dc = Vector3::new(0.0, 0.0, 0.0);
+			let mut sc = Vector3::new(0.0, 0.0, 0.0);
+
+			for light in scene.get_lights().iter() {
+				let shadow_ray = Ray::new(contact_point, light.get_position());
+
+				if let Some((shadow_hit, _)) = scene.check_hit(&shadow_ray) {
+					if shadow_hit.intersect <= 1.0 {
+						continue;
+					}
+				}
+
+				let light_vector = light.get_position() - contact_point;
+				let distance = light_vector.dot(&light_vector).sqrt();
+
+				let light_vector = light_vector.normalize();
+
+				sc += light.attenuate(distance).component_mul(&material.specular_component(view_vector, light_vector, normal));
+				dc += light.attenuate(distance).component_mul(&material.diffuse_component(light_vector, normal));
+			}
+
+			ac + dc + sc
+		},
 		None => Vector3::new(0.0, 0.0, 0.0),
 	};
 
