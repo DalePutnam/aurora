@@ -21,7 +21,7 @@ use Scene;
 
 pub struct Parameters
 {
-	pub objects: Vec<Object>,
+	pub objects: Vec<Arc<Object>>,
 	pub lights: Vec<Light>,
 	pub output_file: String,
 	pub resolution: (u32, u32),

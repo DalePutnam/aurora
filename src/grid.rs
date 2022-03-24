@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::ptr::NonNull;
 use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
@@ -24,12 +23,11 @@ pub struct Grid
 	num_cells: Vector3<usize>,
 	cell_size: f32,
 	cells: Vec<GridCell>,
-	_objects: Vec<Object>,
 }
 
 impl Grid
 {
-	pub fn new(objects: Vec<Object>) -> Self
+	pub fn new(objects: Vec<Arc<Object>>) -> Self
 	{
 		let bbox_corners = Grid::get_bbox_corners_in_world_space(&objects);
 
@@ -86,11 +84,9 @@ impl Grid
 		// Shuffle the list to more evenly distribute work between threads
 		cell_list.shuffle(&mut rand::thread_rng());
 
-		// We will need to share objects between threads so temporarily store it in an Arc
+		// We will need to share objects between threads so move it in an Arc
 		let objects = Arc::new(objects);
 		let cells_per_thread = cell_list.len() / num_cpus::get();
-
-		let mut workers = Vec::new();
 
 		let rx = {
 			let (tx, rx) = mpsc::channel();
@@ -108,11 +104,9 @@ impl Grid
 				let objects = Arc::clone(&objects);
 				let tx = mpsc::Sender::clone(&tx);
 
-				let worker = thread::spawn(move || {
+				thread::spawn(move || {
 					Grid::fill_worker(grid_min, grid_cell_size, cell_list, &objects, tx);
 				});
-
-				workers.push(worker);
 			}
 
 			rx
@@ -120,11 +114,6 @@ impl Grid
 
 		// Collect populated cells
 		let mut cells: Vec<((usize, usize, usize), GridCell)> = rx.into_iter().collect();
-
-		// Make sure workers are fully cleaned up before continuing
-		for worker in workers {
-			worker.join().unwrap();
-		}
 
 		// Populated cells are in an arbitrary order, so we sort them by coordinates
 		cells.sort_unstable_by(|cell1, cell2| -> Ordering {
@@ -144,7 +133,7 @@ impl Grid
 		let cells = cells.into_iter().map(|(_, cell)| cell).collect();
 
 		// Take objects out of the Arc, it no longer needs to be shared between threads
-		let objects = Arc::try_unwrap(objects).unwrap();
+		//let objects = Arc::try_unwrap(objects).unwrap();
 
 		Grid {
 			position: grid_min,
@@ -152,7 +141,6 @@ impl Grid
 			num_cells: num_cells,
 			cell_size: grid_cell_size,
 			cells: cells,
-			_objects: objects,
 		}
 	}
 
@@ -267,7 +255,7 @@ impl Grid
 		grid_min: Vector3<f32>,
 		cell_size: f32,
 		mut cell_list: Vec<(usize, usize, usize)>,
-		objects: &Vec<Object>,
+		objects: &Vec<Arc<Object>>,
 		tx: Sender<((usize, usize, usize), GridCell)>,
 	)
 	{
@@ -289,7 +277,7 @@ impl Grid
 		}
 	}
 
-	fn get_bbox_corners_in_world_space(objects: &Vec<Object>) -> Vec<[Vector4<f32>; 8]>
+	fn get_bbox_corners_in_world_space(objects: &Vec<Arc<Object>>) -> Vec<[Vector4<f32>; 8]>
 	{
 		let mut corner_vec = Vec::new();
 
@@ -550,12 +538,12 @@ impl Grid
 
 struct GridCell
 {
-	objects: Vec<NonNull<Object>>,
+	objects: Vec<Arc<Object>>,
 }
 
 impl GridCell
 {
-	pub fn new(position: Vector3<f32>, size: f32, objects: &Vec<Object>) -> Self
+	pub fn new(position: Vector3<f32>, size: f32, objects: &Vec<Arc<Object>>) -> Self
 	{
 		let mut cell = GridCell {
 			objects: Vec::new(),
@@ -569,7 +557,7 @@ impl GridCell
 			// This will find all objects that are within or that intersect a grid cell
 			// except for bounding boxes that completely contain a grid cell
 			if GridCell::check_polygons_in_cell(&planes, &polygons) {
-				cell.objects.push(NonNull::from(object));
+				cell.objects.push(Arc::clone(object));
 			} else {
 				let bbox_planes = GridCell::get_bbox_planes(object);
 				let grid_point = object.get_transform() * position.insert_row(3, 0.0);
@@ -579,7 +567,7 @@ impl GridCell
 				// corner of the grid cell. This will catch the one case the above
 				// check does not.
 				if GridCell::check_point_in_box(&bbox_planes, grid_point) {
-					cell.objects.push(NonNull::from(object));
+					cell.objects.push(Arc::clone(object));
 				}
 			}
 		});
@@ -592,8 +580,6 @@ impl GridCell
 		self.objects
 			.iter()
 			.fold(None, |last_hit, object| -> Option<(Hit, &dyn Material)> {
-				let object = unsafe { object.as_ref() };
-
 				if let Some(hit) = object.check_hit(ray) {
 					match last_hit {
 						Some(last_hit) => {

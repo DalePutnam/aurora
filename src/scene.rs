@@ -1,4 +1,5 @@
 use na::Vector3;
+use std::sync::Arc;
 use shading::Material;
 use Grid;
 use Hit;
@@ -15,7 +16,7 @@ pub struct Scene
 
 impl Scene
 {
-	pub fn new(objects: Vec<Object>, lights: Vec<Light>, ambient: Vector3<f32>) -> Self
+	pub fn new(objects: Vec<Arc<Object>>, lights: Vec<Light>, ambient: Vector3<f32>) -> Self
 	{
 		Scene {
 			grid: Grid::new(objects),

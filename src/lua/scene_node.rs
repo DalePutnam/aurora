@@ -48,7 +48,7 @@ impl SceneNode
 		}
 	}
 
-	pub fn convert_to_object_list(&self) -> Vec<Object>
+	pub fn convert_to_object_list(&self) -> Vec<Arc<Object>>
 	{
 		self.convert_to_object_list_private(Matrix4::identity())
 	}
@@ -97,7 +97,7 @@ impl SceneNode
 		node.children.push(child);
 	}
 
-	fn convert_to_object_list_private(&self, transform: Matrix4<f32>) -> Vec<Object>
+	fn convert_to_object_list_private(&self, transform: Matrix4<f32>) -> Vec<Arc<Object>>
 	{
 		let node = self.inner.lock().unwrap();
 
@@ -105,7 +105,7 @@ impl SceneNode
 		let cumulative_transform = transform * node.transform;
 
 		if let Some(object) = self.build_object_with_transform(&node, cumulative_transform) {
-			list.push(object);
+			list.push(Arc::new(object));
 		}
 
 		for child in &node.children {
