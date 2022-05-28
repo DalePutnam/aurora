@@ -89,8 +89,7 @@ impl Sphere
 		let position = lua::Vector3::from_lua(lua_position, lua)?;
 		let radius = f32::from_lua(lua_radius, lua)?;
 
-		let node =
-			lua::SceneNode::new(&name, Some(Arc::new(Sphere::new(position.into(), radius))));
+		let node = lua::SceneNode::new(&name, Some(Arc::new(Sphere::new(position.into(), radius))));
 
 		Ok(node)
 	}
@@ -151,7 +150,12 @@ impl Mesh
 		let name = String::from_lua(lua_name, lua)?;
 		let file_name = String::from_lua(lua_file_name, lua)?;
 
-		let node = lua::SceneNode::new(&name, Some(Arc::new(Mesh::new(&file_name))));
+		let mesh = match Mesh::from_file(&file_name) {
+			Ok(mesh) => mesh,
+			Err(parse_error) => return Err(rlua::Error::ExternalError(Arc::new(parse_error))),
+		};
+
+		let node = lua::SceneNode::new(&name, Some(Arc::new(mesh)));
 
 		Ok(node)
 	}
