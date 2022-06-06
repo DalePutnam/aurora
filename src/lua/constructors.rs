@@ -152,7 +152,7 @@ impl Mesh
 
 		let mesh = match Mesh::from_file(&file_name) {
 			Ok(mesh) => mesh,
-			Err(parse_error) => return Err(rlua::Error::ExternalError(Arc::new(parse_error))),
+			Err(read_error) => return Err(rlua::Error::ExternalError(Arc::new(read_error))),
 		};
 
 		let node = lua::SceneNode::new(&name, Some(Arc::new(mesh)));
