@@ -42,7 +42,7 @@ s:translate(0, 4, 0)
 -- Read in the cow model from a separate file.
 -- #############################################
 
-cow_poly = gr.mesh('cow', 'test/assets/cow.obj')
+cow_poly = gr.mesh('cow', 'test/assets/cow_smooth.obj')
 factor = 2.0/(2.76+3.637)
 
 cow_poly:set_material(hide)
