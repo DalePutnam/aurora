@@ -194,7 +194,7 @@ impl UserData for SceneNode
 					Ok(child_node) => {
 						lua_node.add_child(child_node.clone());
 						Ok(())
-					}
+					},
 					Err(_) => panic!("Invalid node!"),
 				},
 				_ => panic!("Invalid node!"),
@@ -208,7 +208,7 @@ impl UserData for SceneNode
 					Ok(material) => {
 						lua_node.set_material(material.get_inner().clone());
 						Ok(())
-					}
+					},
 					Err(e) => Err(e),
 				},
 				_ => Err(rlua::Error::RuntimeError(

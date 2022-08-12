@@ -7,5 +7,10 @@ pub trait Material: Send + Sync + fmt::Debug
 {
 	fn ambient_component(&self) -> Vector3<f32>;
 	fn diffuse_component(&self, light: Vector4<f32>, normal: Vector4<f32>) -> Vector3<f32>;
-	fn specular_component(&self, view: Vector4<f32>, light: Vector4<f32>, normal: Vector4<f32>) -> Vector3<f32>;
+	fn specular_component(
+		&self,
+		view: Vector4<f32>,
+		light: Vector4<f32>,
+		normal: Vector4<f32>,
+	) -> Vector3<f32>;
 }

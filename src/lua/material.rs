@@ -1,7 +1,7 @@
 use std::sync::Arc;
+
 use rlua::UserData;
 use rlua::UserDataMethods;
-
 use shading;
 
 pub struct Material
@@ -18,10 +18,10 @@ impl Material
 		}
 	}
 
-    pub fn get_inner(&self) -> &Arc<dyn shading::Material>
-    {
-        &self.inner
-    }
+	pub fn get_inner(&self) -> &Arc<dyn shading::Material>
+	{
+		&self.inner
+	}
 }
 
 impl UserData for Material

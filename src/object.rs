@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cell::Cell;
 use std::fmt;
 use std::sync::Arc;
@@ -7,7 +8,6 @@ use primitives::BoundingBox;
 use primitives::Primitive;
 use shading::Material;
 use thread_local::ThreadLocal;
-use std::borrow::Borrow;
 use Hit;
 use Ray;
 

@@ -70,7 +70,7 @@ where
 
 					Ok(Vector3::new(x, y, z))
 				}
-			}
+			},
 			_ => {
 				let msg = format!("Expected a table, found something else");
 				Err(Error::FromLuaConversionError {
@@ -78,7 +78,7 @@ where
 					to: "Vector3",
 					message: Some(msg),
 				})
-			}
+			},
 		}
 	}
 }

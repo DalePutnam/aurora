@@ -1,27 +1,33 @@
+use std::error;
 use std::f32;
 use std::fmt;
-use std::error;
 use std::path::Path;
+
 use na::Matrix4;
 use na::Vector4;
 use primitives::Primitive;
-use util::math;
 use util::format::obj;
+use util::math;
 use Hit;
 use Ray;
 
 #[derive(fmt::Debug)]
-pub enum Error {
+pub enum Error
+{
 	FileTypeError(String),
 	FileReadError(Box<dyn error::Error + std::marker::Send + std::marker::Sync>),
 }
 
-impl Error {
-	fn read_error<E: error::Error + std::marker::Send + std::marker::Sync + 'static>(err: E) -> Self {
+impl Error
+{
+	fn read_error<E: error::Error + std::marker::Send + std::marker::Sync + 'static>(err: E)
+		-> Self
+	{
 		Self::FileReadError(Box::new(err))
 	}
 
-	fn type_error(msg: String) -> Self {
+	fn type_error(msg: String) -> Self
+	{
 		Self::FileTypeError(msg)
 	}
 }
@@ -53,7 +59,7 @@ struct Triangle
 {
 	pub vertices: (usize, usize, usize),
 	pub normals: Option<(usize, usize, usize)>,
-	pub texture_coordinates: Option<(usize, usize, usize)>
+	pub texture_coordinates: Option<(usize, usize, usize)>,
 }
 
 impl Mesh
@@ -69,14 +75,16 @@ impl Mesh
 				obj::FILE_EXTENSION => {
 					let obj_mesh = obj::read_file(file_name).map_err(Error::read_error)?;
 
-					let faces = obj_mesh.f.iter().map(|face| {
-						Triangle {
+					let faces = obj_mesh
+						.f
+						.iter()
+						.map(|face| Triangle {
 							vertices: face.v,
 							normals: face.vn,
-							texture_coordinates: face.vt
-						}
-					}).collect();
-			
+							texture_coordinates: face.vt,
+						})
+						.collect();
+
 					return Ok(Mesh {
 						vertices: obj_mesh.v,
 						normals: obj_mesh.vn,
@@ -86,11 +94,14 @@ impl Mesh
 				},
 				_ => {
 					// No-op, error returned later
-				}
+				},
 			}
 		}
 
-		Err(Error::type_error(format!("Failed to read {}: unknown mesh file type", file_name)))
+		Err(Error::type_error(format!(
+			"Failed to read {}: unknown mesh file type",
+			file_name
+		)))
 	}
 }
 

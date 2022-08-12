@@ -1,3 +1,4 @@
+extern crate clap;
 extern crate failure;
 extern crate image;
 extern crate nalgebra as na;
@@ -5,7 +6,6 @@ extern crate num_cpus;
 extern crate rand;
 extern crate rlua;
 extern crate thread_local;
-extern crate clap;
 
 pub use self::grid::Grid;
 pub use self::light::Light;
@@ -14,7 +14,7 @@ pub use self::ray::Hit;
 pub use self::ray::Ray;
 pub use self::scene::Scene;
 
-pub mod shading;
+pub mod cli;
 pub mod grid;
 pub mod light;
 pub mod lua;
@@ -23,8 +23,8 @@ pub mod primitives;
 pub mod ray;
 pub mod render;
 pub mod scene;
+pub mod shading;
 pub mod util;
-pub mod cli;
 
 use lua::SceneBuilder;
 

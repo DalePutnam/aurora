@@ -1,5 +1,6 @@
-use na::Vector3;
 use std::sync::Arc;
+
+use na::Vector3;
 use shading::Material;
 use Grid;
 use Hit;

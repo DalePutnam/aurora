@@ -70,7 +70,9 @@ pub fn parse_args() -> Parameters
 
 	let output_file = matches.value_of("output file").map(|s| String::from(s));
 
-	let resolution = matches.value_of("resolution").map(|s| parse_resolution_value(s));
+	let resolution = matches
+		.value_of("resolution")
+		.map(|s| parse_resolution_value(s));
 
 	Parameters {
 		input_file: String::from(input_file),
@@ -111,7 +113,7 @@ fn parse_pixel_value(pixel_string: &str) -> (u32, u32)
 
 fn validate_resolution_value(resolution_string: String) -> Result<(), String>
 {
-	let resolution: Vec<&str> = resolution_string.split(&['x','X'][..]).collect();
+	let resolution: Vec<&str> = resolution_string.split(&['x', 'X'][..]).collect();
 
 	if resolution.len() != 2 {
 		return Err(String::from("Expected format is \"HxV\""));
@@ -136,7 +138,7 @@ fn validate_resolution_value(resolution_string: String) -> Result<(), String>
 
 fn parse_resolution_value(resolution_string: &str) -> (u32, u32)
 {
-	let resolution: Vec<&str> = resolution_string.split(&['x','X'][..]).collect();
+	let resolution: Vec<&str> = resolution_string.split(&['x', 'X'][..]).collect();
 
 	(
 		resolution[0].parse::<u32>().unwrap(),

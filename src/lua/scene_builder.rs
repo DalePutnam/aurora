@@ -191,7 +191,7 @@ impl SceneBuilder
 				return Err(rlua::Error::RuntimeError(
 					"gr.render expected a scene node as its first argument".to_string(),
 				))
-			}
+			},
 		};
 
 		let output_name = String::from_lua(lua_output_name, lua)?;
@@ -213,12 +213,12 @@ impl SceneBuilder
 				}
 
 				vec
-			}
+			},
 			_ => {
 				return Err(rlua::Error::RuntimeError(
 					"gr.render expected an array as its tenth argument".to_string(),
 				))
-			}
+			},
 		};
 
 		let render_parameters = render::Parameters {

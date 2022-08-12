@@ -41,16 +41,12 @@ impl CookTorrance
 
 impl Material for CookTorrance
 {
-	fn ambient_component(&self) -> Vector3<f32> 
+	fn ambient_component(&self) -> Vector3<f32>
 	{
 		self.diffuse_colour * f32::consts::PI
 	}
 
-	fn diffuse_component(
-		&self,
-		light: Vector4<f32>,
-		normal: Vector4<f32>
-	) -> Vector3<f32>
+	fn diffuse_component(&self, light: Vector4<f32>, normal: Vector4<f32>) -> Vector3<f32>
 	{
 		if math::near_zero(self.diffuse_fraction) {
 			return Vector3::new(0.0, 0.0, 0.0);
@@ -63,7 +59,7 @@ impl Material for CookTorrance
 		&self,
 		view: Vector4<f32>,
 		light: Vector4<f32>,
-		normal: Vector4<f32>
+		normal: Vector4<f32>,
 	) -> Vector3<f32>
 	{
 		let specular_fraction = 1.0 - self.diffuse_fraction;

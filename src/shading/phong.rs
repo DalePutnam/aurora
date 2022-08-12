@@ -31,12 +31,17 @@ impl Material for Phong
 		self.diffuse
 	}
 
-	fn diffuse_component(&self, light: Vector4<f32>, normal: Vector4<f32>) -> Vector3<f32> 
+	fn diffuse_component(&self, light: Vector4<f32>, normal: Vector4<f32>) -> Vector3<f32>
 	{
 		self.diffuse * light.dot(&normal).max(0.0)
 	}
 
-	fn specular_component(&self, view: Vector4<f32>, light: Vector4<f32>, normal: Vector4<f32>) -> Vector3<f32>
+	fn specular_component(
+		&self,
+		view: Vector4<f32>,
+		light: Vector4<f32>,
+		normal: Vector4<f32>,
+	) -> Vector3<f32>
 	{
 		let t = light.dot(&normal) * 2.0;
 		let r = normal.map(|component| component * t) - light;

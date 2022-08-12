@@ -22,7 +22,7 @@ impl Sphere
 	{
 		Sphere {
 			position: Vector4::new(0.0, 0.0, 0.0, 1.0),
-			radius: 1.0
+			radius: 1.0,
 		}
 	}
 
@@ -41,14 +41,14 @@ impl Primitive for Sphere
 	{
 		let point = transform * ray.point();
 		let origin = transform * ray.origin();
-	
+
 		let po = point - origin;
 		let oc = origin - self.position;
-	
+
 		let a = po.dot(&po);
 		let b = po.dot(&oc) * 2.0;
 		let c = oc.dot(&oc) - (self.radius * self.radius);
-	
+
 		match math::quadratic_roots(a, b, c) {
 			math::QuadRoots::Zero | math::QuadRoots::One(_) => None,
 			math::QuadRoots::Two(root_one, root_two) => {
@@ -68,23 +68,23 @@ impl Primitive for Sphere
 							root_one
 						}
 					};
-	
+
 					let mut n = (origin + (t * po)) - self.position;
-	
+
 					// Invert normal if inside sphere
 					if n.dot(&(origin - point)) < 0.0 {
 						n = -n;
 					}
-	
+
 					n = math::transform_normals(n, transform);
-	
+
 					Some(Hit {
 						normal: n,
 						intersect: t,
 						uv: (0.0, 0.0),
 					})
 				}
-			}
+			},
 		}
 	}
 

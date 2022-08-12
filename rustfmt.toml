@@ -1,4 +1,6 @@
 hard_tabs = true
+match_block_trailing_comma = true
+struct_variant_width = 0
 
 unstable_features = true
 

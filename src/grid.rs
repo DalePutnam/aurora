@@ -10,9 +10,9 @@ use na::Vector4;
 use num_cpus;
 use rand;
 use rand::seq::SliceRandom;
+use shading::Material;
 use util::math;
 use Hit;
-use shading::Material;
 use Object;
 use Ray;
 
@@ -162,26 +162,14 @@ impl Grid
 			* self.cell_size)
 			+ self.position.insert_row(3, 1.0);
 
-		let (mut t_max_x, t_delta_x) = self.get_max_and_delta(
-			step_x,
-			ray,
-			cell_position,
-			Vector4::new(1.0, 0.0, 0.0, 0.0),
-		);
+		let (mut t_max_x, t_delta_x) =
+			self.get_max_and_delta(step_x, ray, cell_position, Vector4::new(1.0, 0.0, 0.0, 0.0));
 
-		let (mut t_max_y, t_delta_y) = self.get_max_and_delta(
-			step_y,
-			ray,
-			cell_position,
-			Vector4::new(0.0, 1.0, 0.0, 0.0),
-		);
+		let (mut t_max_y, t_delta_y) =
+			self.get_max_and_delta(step_y, ray, cell_position, Vector4::new(0.0, 1.0, 0.0, 0.0));
 
-		let (mut t_max_z, t_delta_z) = self.get_max_and_delta(
-			step_z,
-			ray,
-			cell_position,
-			Vector4::new(0.0, 0.0, 1.0, 0.0),
-		);
+		let (mut t_max_z, t_delta_z) =
+			self.get_max_and_delta(step_z, ray, cell_position, Vector4::new(0.0, 0.0, 1.0, 0.0));
 
 		let mut cell = self.cell_at(grid_x as usize, grid_y as usize, grid_z as usize);
 		let mut hit: Option<(Hit, &dyn Material)> = None;
@@ -195,10 +183,10 @@ impl Grid
 						{
 							hit = Some(cell_hit);
 						}
-					}
+					},
 					None => {
 						hit = Some(cell_hit);
-					}
+					},
 				}
 			}
 
@@ -590,7 +578,7 @@ impl GridCell
 							} else {
 								Some(last_hit)
 							}
-						}
+						},
 						None => Some(hit),
 					}
 				} else {
@@ -670,8 +658,7 @@ impl GridCell
 		current_point + (t * (prev_point - current_point))
 	}
 
-	fn check_point_in_box(planes: &[(Vector4<f32>, Vector4<f32>); 6], point: Vector4<f32>)
-		-> bool
+	fn check_point_in_box(planes: &[(Vector4<f32>, Vector4<f32>); 6], point: Vector4<f32>) -> bool
 	{
 		planes
 			.iter()
@@ -736,14 +723,14 @@ impl GridCell
 		let (lower, upper) = obj.get_bounding_box().get_extents();
 
 		let points = [
-			lower,                                       // Left-Bottom-Back 0
+			lower,                                        // Left-Bottom-Back 0
 			Vector4::new(upper.x, lower.y, lower.z, 1.0), // Right-Bottom-Back 1
 			Vector4::new(upper.x, upper.y, lower.z, 1.0), // Right-Top-Back 2
 			Vector4::new(lower.x, upper.y, lower.z, 1.0), // Left-Top-Back 3
 			Vector4::new(lower.x, upper.y, upper.z, 1.0), // Left-Top-Front 4
 			Vector4::new(lower.x, lower.y, upper.z, 1.0), // Left-Bottom-Front 5
 			Vector4::new(upper.x, lower.y, upper.z, 1.0), // Right-Bottom-Front 6
-			upper,                                       // Right-Top-Front 7
+			upper,                                        // Right-Top-Front 7
 		];
 
 		[
