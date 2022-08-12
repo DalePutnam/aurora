@@ -187,21 +187,19 @@ fn parse_face_data(parts: &Vec<&str>) -> Result<Face, String>
 
 	let vertices = (v1_data.0, v2_data.0, v3_data.0);
 
-	let normals = if v1_data.1.is_some() && v2_data.1.is_some() && v3_data.1.is_some() {
-		Some((v1_data.1.unwrap(), v2_data.1.unwrap(), v3_data.1.unwrap()))
-	} else if v1_data.1.is_none() && v2_data.1.is_none() && v3_data.1.is_none() {
-		None
-	} else {
-		return Err(String::from("Some vertices missing normal data"))
-	};
+	let normals = 
+		match (v1_data.1, v2_data.1, v3_data.1) {
+			(Some(vn1), Some(vn2), Some(vn3)) => Some((vn1, vn2, vn3)),
+			(None, None, None) => None,
+			_ => return Err(String::from("Some vertices missing normal data"))
+		};
 
-	let texture_coordinates = if v1_data.2.is_some() && v2_data.2.is_some() && v3_data.2.is_some() {
-		Some((v1_data.2.unwrap(), v2_data.2.unwrap(), v3_data.2.unwrap()))
-	} else if v1_data.2.is_none() && v2_data.2.is_none() && v3_data.2.is_none() {
-		None
-	} else {
-		return Err(String::from("Some vertices missing texture coordinate data"))
-	};
+	let texture_coordinates = 
+		match (v1_data.2, v2_data.2, v3_data.2) {
+			(Some(vt1), Some(vt2), Some(vt3)) => Some((vt1, vt2, vt3)),
+			(None, None, None) => None,
+			_ => return Err(String::from("Some vertices missing texture coordinate data"))
+		};
 
 	Ok(Face {
 		v: vertices,
