@@ -153,7 +153,7 @@ impl UserData for SceneNode
 			let axis = match lua_axis {
 				Value::String(string) => match string.to_str() {
 					Ok(slice) => slice.chars().nth(0).unwrap(),
-					Err(e) => panic!(e),
+					Err(e) => panic!("{}", e),
 				},
 				_ => panic!("Failed to rotate"),
 			};
