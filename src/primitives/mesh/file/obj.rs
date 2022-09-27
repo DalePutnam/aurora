@@ -7,22 +7,10 @@ use std::io::BufReader;
 
 use na::Vector4;
 
+use primitives::Mesh;
+use primitives::mesh::Triangle;
+
 pub const FILE_EXTENSION: &str = "obj";
-
-pub struct Mesh
-{
-	pub v: Vec<Vector4<f32>>,
-	pub vn: Vec<Vector4<f32>>,
-	pub vt: Vec<Vector4<f32>>,
-	pub f: Vec<Face>,
-}
-
-pub struct Face
-{
-	pub v: (usize, usize, usize),
-	pub vn: Option<(usize, usize, usize)>,
-	pub vt: Option<(usize, usize, usize)>,
-}
 
 #[derive(fmt::Debug)]
 pub enum Error
@@ -91,10 +79,10 @@ pub fn read_file(path: &str) -> Result<Mesh, Error>
 	let reader = BufReader::new(obj_file);
 
 	let mut mesh = Mesh {
-		v: Vec::new(),
-		vn: Vec::new(),
-		vt: Vec::new(),
-		f: Vec::new(),
+		vertices: Vec::new(),
+		normals: Vec::new(),
+		texture_coordinates: Vec::new(),
+		faces: Vec::new(),
 	};
 
 	let mut line_number = 1;
@@ -134,19 +122,19 @@ fn parse_line(line: String, mesh: &mut Mesh) -> Result<(), String>
 		match line_parts[0] {
 			"v" => {
 				let vertex = parse_vertex_data(&line_parts)?;
-				mesh.v.push(vertex);
+				mesh.vertices.push(vertex);
 			},
 			"vn" => {
 				let normal = parse_vertex_data(&line_parts)?;
-				mesh.vn.push(normal);
+				mesh.normals.push(normal);
 			},
 			"vt" => {
 				let texture_coordinate = parse_vertex_data(&line_parts)?;
-				mesh.vt.push(texture_coordinate);
+				mesh.texture_coordinates.push(texture_coordinate);
 			},
 			"f" => {
 				let face = parse_face_data(&line_parts)?;
-				mesh.f.push(face);
+				mesh.faces.push(face);
 			},
 			"o" | "g" | "s" => {
 				// Object names (o), groups (g), smoothing groups (s) are ignored
@@ -185,7 +173,7 @@ fn parse_vertex_component(part: &str) -> Result<f32, String>
 	}
 }
 
-fn parse_face_data(parts: &Vec<&str>) -> Result<Face, String>
+fn parse_face_data(parts: &Vec<&str>) -> Result<Triangle, String>
 {
 	if parts.len() < 4 {
 		return Err(String::from(
@@ -219,10 +207,10 @@ fn parse_face_data(parts: &Vec<&str>) -> Result<Face, String>
 		},
 	};
 
-	Ok(Face {
-		v: vertices,
-		vn: normals,
-		vt: texture_coordinates,
+	Ok(Triangle {
+		vertices: vertices,
+		normals: normals,
+		texture_coordinates: texture_coordinates,
 	})
 }
 

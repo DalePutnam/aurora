@@ -1,3 +1,5 @@
+mod file;
+
 use std::error;
 use std::f32;
 use std::fmt;
@@ -6,10 +8,11 @@ use std::path::Path;
 use na::Matrix4;
 use na::Vector4;
 use primitives::Primitive;
-use util::format::obj;
 use util::math;
 use Hit;
 use Ray;
+
+use self::file::obj;
 
 #[derive(fmt::Debug)]
 pub enum Error
@@ -48,10 +51,10 @@ impl error::Error for Error {}
 #[derive(fmt::Debug)]
 pub struct Mesh
 {
-	vertices: Vec<Vector4<f32>>,
-	normals: Vec<Vector4<f32>>,
-	texture_coordinates: Vec<Vector4<f32>>,
-	faces: Vec<Triangle>,
+    vertices: Vec<Vector4<f32>>,
+    normals: Vec<Vector4<f32>>,
+    texture_coordinates: Vec<Vector4<f32>>,
+    faces: Vec<Triangle>,
 }
 
 #[derive(fmt::Debug)]
@@ -73,24 +76,7 @@ impl Mesh
 
 			match file_extension.as_ref() {
 				obj::FILE_EXTENSION => {
-					let obj_mesh = obj::read_file(file_name).map_err(Error::read_error)?;
-
-					let faces = obj_mesh
-						.f
-						.iter()
-						.map(|face| Triangle {
-							vertices: face.v,
-							normals: face.vn,
-							texture_coordinates: face.vt,
-						})
-						.collect();
-
-					return Ok(Mesh {
-						vertices: obj_mesh.v,
-						normals: obj_mesh.vn,
-						texture_coordinates: obj_mesh.vt,
-						faces: faces,
-					});
+					return obj::read_file(file_name).map_err(Error::read_error);
 				},
 				_ => {
 					// No-op, error returned later
