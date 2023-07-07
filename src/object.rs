@@ -10,6 +10,7 @@ use shading::Material;
 use thread_local::ThreadLocal;
 use Hit;
 use Ray;
+use Traceable;
 
 #[derive(fmt::Debug)]
 pub struct Object
@@ -50,17 +51,31 @@ impl Object
 		&self.name
 	}
 
-	pub fn get_bounding_box(&self) -> &BoundingBox
+	fn ray_previously_visited(&self, ray: &Ray) -> bool
+	{
+		let last_seen_ray_cell = self.last_seen_ray.get_or(|| Cell::new(None));
+
+		if let Some(last_seen_ray_id) = last_seen_ray_cell.replace(Some(ray.id())) {
+			last_seen_ray_id == ray.id()
+		} else {
+			false
+		}
+	}
+}
+
+impl Traceable for Object
+{
+	fn get_bounding_box(&self) -> &BoundingBox
 	{
 		&self.bounding_box
 	}
 
-	pub fn get_transform(&self) -> Matrix4<f32>
+	fn get_transform(&self) -> Matrix4<f32>
 	{
 		self.transform
 	}
 
-	pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
+	fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
 	{
 		if self.ray_previously_visited(ray) {
 			return None;
@@ -74,17 +89,6 @@ impl Object
 			}
 		} else {
 			None
-		}
-	}
-
-	fn ray_previously_visited(&self, ray: &Ray) -> bool
-	{
-		let last_seen_ray_cell = self.last_seen_ray.get_or(|| Cell::new(None));
-
-		if let Some(last_seen_ray_id) = last_seen_ray_cell.replace(Some(ray.id())) {
-			last_seen_ray_id == ray.id()
-		} else {
-			false
 		}
 	}
 }

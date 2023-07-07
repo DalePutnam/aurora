@@ -15,6 +15,7 @@ use util::math;
 use Hit;
 use Object;
 use Ray;
+use Traceable;
 
 pub struct Grid
 {

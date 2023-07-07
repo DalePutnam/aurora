@@ -13,6 +13,7 @@ pub use self::object::Object;
 pub use self::ray::Hit;
 pub use self::ray::Ray;
 pub use self::scene::Scene;
+pub use self::traceable::Traceable;
 
 pub mod cli;
 pub mod grid;
@@ -25,6 +26,7 @@ pub mod render;
 pub mod scene;
 pub mod shading;
 pub mod util;
+pub mod traceable;
 
 use lua::SceneBuilder;
 
