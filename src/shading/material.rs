@@ -13,4 +13,10 @@ pub trait Material: Send + Sync + fmt::Debug
 		light: Vector4<f32>,
 		normal: Vector4<f32>,
 	) -> Vector3<f32>;
+
+	#[allow(unused)]
+	fn emissive_component(&self, origin: Vector4<f32>, contact: Vector4<f32>) -> Vector3<f32>
+	{
+		Vector3::zeros()
+	}
 }
