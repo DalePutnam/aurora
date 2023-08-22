@@ -11,8 +11,7 @@ use rlua::Context;
 use rlua::FromLua;
 use rlua::Lua;
 use rlua::Value;
-use shading::CookTorrance;
-use shading::Phong;
+use shading::Lambertian;
 use Light;
 
 pub struct SceneBuilder
@@ -89,14 +88,9 @@ impl SceneBuilder
 				.create_function(Mesh::lua_new)
 				.expect("Failed to create mesh constructor");
 
-			// Material Constructor
-			let material_ctor = lua_ctx
-				.create_function(Phong::lua_new)
-				.expect("Failed to create mesh constructor");
-
-			// CookTorrance Material Constructor
-			let cook_torrance_ctor = lua_ctx
-				.create_function(CookTorrance::lua_new)
+			// Lambertian Material Constructor
+			let lambertian_ctor = lua_ctx
+				.create_function(Lambertian::lua_new)
 				.expect("Failed to create mesh constructor");
 
 			// Light Constructor
@@ -150,9 +144,7 @@ impl SceneBuilder
 				.expect("Failed to assign Cube constructor to gr.cube");
 			gr.set("mesh", mesh_ctor)
 				.expect("Failed to assign Mesh constructor to gr.mesh");
-			gr.set("material", material_ctor)
-				.expect("Failed to assign Material constructor to gr.material");
-			gr.set("cook_torrance", cook_torrance_ctor)
+			gr.set("lambertian", lambertian_ctor)
 				.expect("Failed to assign Material constructor to gr.material");
 			gr.set("light", light_ctor)
 				.expect("Failed to assign Light constructor to gr.light");

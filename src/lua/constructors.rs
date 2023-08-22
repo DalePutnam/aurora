@@ -8,71 +8,20 @@ use primitives::Sphere;
 use rlua::Context;
 use rlua::FromLua;
 use rlua::Value;
-use shading::CookTorrance;
-use shading::Phong;
+use shading::Lambertian;
 use Light;
 
 use super::SceneNode;
 
-impl Phong
+impl Lambertian
 {
 	pub fn lua_new<'lua>(
 		lua: Context<'lua>,
-		lua_value: (Value<'lua>, Value<'lua>, Value<'lua>),
+		lua_value: Value<'lua>,
 	) -> rlua::Result<lua::Material>
 	{
-		let (lua_diffuse, lua_specular, lua_shininess) = lua_value;
-
-		let diffuse = lua::Vector3::from_lua(lua_diffuse, lua)?;
-		let specular = lua::Vector3::from_lua(lua_specular, lua)?;
-		let shininess = f32::from_lua(lua_shininess, lua)?;
-
-		Ok(lua::Material::new(Phong::new(
-			na::Vector3::from(diffuse),
-			na::Vector3::from(specular),
-			shininess,
-		)))
-	}
-}
-
-impl CookTorrance
-{
-	pub fn lua_new<'lua>(
-		lua: Context<'lua>,
-		lua_value: (
-			Value<'lua>,
-			Value<'lua>,
-			Value<'lua>,
-			Value<'lua>,
-			Value<'lua>,
-			Value<'lua>,
-		),
-	) -> rlua::Result<lua::Material>
-	{
-		let (
-			lua_diffuse_colour,
-			lua_specular_colour,
-			lua_diffuse_fraction,
-			lua_roughness,
-			lua_refractive_index,
-			lua_extinction_coefficient,
-		) = lua_value;
-
-		let diffuse_colour = lua::Vector3::from_lua(lua_diffuse_colour, lua)?;
-		let specular_colour = lua::Vector3::from_lua(lua_specular_colour, lua)?;
-		let diffuse_fraction = f32::from_lua(lua_diffuse_fraction, lua)?;
-		let roughness = f32::from_lua(lua_roughness, lua)?;
-		let refractive_index = f32::from_lua(lua_refractive_index, lua)?;
-		let extinction_coefficient = f32::from_lua(lua_extinction_coefficient, lua)?;
-
-		Ok(lua::Material::new(CookTorrance::new(
-			na::Vector3::from(diffuse_colour),
-			na::Vector3::from(specular_colour),
-			diffuse_fraction,
-			roughness,
-			refractive_index,
-			extinction_coefficient,
-		)))
+		let colour = lua::Vector3::from_lua(lua_value, lua)?;
+		Ok(lua::Material::new(Lambertian::new(na::Vector3::from(colour))))
 	}
 }
 

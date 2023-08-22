@@ -1,7 +1,5 @@
-pub use self::cook_torrance::CookTorrance;
+pub use self::lambertian::Lambertian;
 pub use self::material::Material;
-pub use self::phong::Phong;
 
-pub mod cook_torrance;
+pub mod lambertian;
 pub mod material;
-pub mod phong;
