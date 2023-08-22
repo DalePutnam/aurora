@@ -71,33 +71,27 @@ impl Material for CookTorrance
 		let half = (view + light).normalize();
 
 		let nv = normal.dot(&view);
+		let nl = normal.dot(&light);
 
-		if math::near_zero(nv) {
+		if math::near_zero(nv) || math::near_zero(nl) {
 			return Vector3::new(0.0, 0.0, 0.0);
 		}
 
-		let fresnel_n =
-			fresnel_from_refractive_index(1.0, self.refractive_index, self.extinction_coefficient);
-
-		let fresnel_vh = fresnel_from_refractive_index(
+		let fresnel_vh = fresnel(
 			view.dot(&half),
 			self.refractive_index,
 			self.extinction_coefficient,
 		);
 
-		let fresnel_red = fresnel_approximation(fresnel_vh, fresnel_n, self.specular_colour.x);
-		let fresnel_green = fresnel_approximation(fresnel_vh, fresnel_n, self.specular_colour.y);
-		let fresnel_blue = fresnel_approximation(fresnel_vh, fresnel_n, self.specular_colour.z);
-
 		let d = ggx_distribution(half, normal, self.roughness);
 		let g = ggx_geometry(view, light, half, normal, self.roughness);
 
-		let specular_partial = (d * g) / (4.0 * nv);
+		let specular = (fresnel_vh * d * g) / (4.0 * nv * nl);
 
 		let specular_colour = Vector3::new(
-			fresnel_red * specular_partial,
-			fresnel_green * specular_partial,
-			fresnel_blue * specular_partial,
+			self.specular_colour.x * specular,
+			self.specular_colour.y * specular,
+			self.specular_colour.z * specular,
 		);
 
 		specular_colour * specular_fraction
@@ -150,7 +144,7 @@ fn ggx_geometry_partial(
 	(chi(dh / dn) * 2.0) / (1.0 + (1.0 + (a2 * tan2)).sqrt())
 }
 
-fn fresnel_from_refractive_index(
+fn fresnel(
 	cosine_angle: f32,
 	refractive_index: f32,
 	extinction_coefficient: f32,
@@ -163,13 +157,4 @@ fn fresnel_from_refractive_index(
 	let k2 = k * k;
 
 	((n - 1.0).powi(2) + 4.0 * n * (1.0 - u).powi(5) + k2) / ((n + 1.0).powi(2) + k2)
-}
-
-fn fresnel_approximation(fresnel: f32, fresnel_normal: f32, reflectance: f32) -> f32
-{
-	let r = reflectance;
-	let nf = fresnel_normal;
-	let f = fresnel;
-
-	r + (1.0 - r) * ((f - nf) / (1.0 - nf))
 }
