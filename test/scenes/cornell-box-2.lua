@@ -29,6 +29,12 @@ back_wall:scale(5.0 + (0.2 * 2.0), 5.0, 0.2)
 back_wall:translate(-(2.5 + 0.2), 0.0, -(5.0 + 0.2))
 back_wall:set_material(white_wall)
 
+front_wall = gr.cube('front_wall')
+scene_root:add_child(front_wall)
+front_wall:scale(5.0 + (0.2 * 2.0), 5.0, 0.2)
+front_wall:translate(-(2.5 + 0.2), 0.0, 0.0)
+front_wall:set_material(white_wall)
+
 ceiling = gr.cube('ceiling')
 scene_root:add_child(ceiling)
 ceiling:scale(5.0 + (0.2 * 2.0), 0.2, 5.0 + 0.2)
@@ -50,8 +56,8 @@ right_floor_box:translate(0.2, 0.0, -3.0)
 right_floor_box:set_material(white_wall)
 
 --white_light = gr.light({0, 4.99, -2.5}, {12.0, 12.0, 12.0}, {0, 0, 1})
-white_light = gr.point_light({0, 4.5, -2.5}, {1.0, 1.0, 1.0}, 60.0)
+white_light = gr.point_light({0, 4.8, -2.5}, {1.0, 1.0, 1.0}, 60.0)
 
-gr.render(scene_root, 'cornell-box-1.png', 512, 512,
-	{0, 2.5, 5.4}, {0, 2.5, 0}, {0, 1, 0}, 50,
+gr.render(scene_root, 'cornell-box-2.png', 512, 512,
+	{-2.25, 4.5, -0.25}, {0, 2.5, -2.5}, {0, 1, 0}, 90,
 	{0.1, 0.1, 0.1}, {white_light})

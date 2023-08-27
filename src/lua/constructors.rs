@@ -129,6 +129,24 @@ impl Light
 			na::Vector3::from(falloff),
 		))
 	}
+
+	pub fn lua_new_point_light<'lua>(
+		lua: Context<'lua>,
+		lua_value: (Value<'lua>, Value<'lua>, Value<'lua>),
+	) -> rlua::Result<Light>
+	{
+		let (lua_position, lua_colour, lua_power) = lua_value;
+
+		let position = lua::Vector3::from_lua(lua_position, lua)?;
+		let colour = lua::Vector3::from_lua(lua_colour, lua)?;
+		let power =  f32::from_lua(lua_power, lua)?;
+
+		Ok(Light::new2(
+			na::Vector3::from(position),
+			na::Vector3::from(colour),
+			power,
+		))
+	}
 }
 
 impl SceneNode

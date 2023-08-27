@@ -5,6 +5,8 @@ use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
+use std::time;
+use std::io::Write;
 
 use image::png;
 use image::ColorType;
@@ -14,10 +16,18 @@ use image::Rgb;
 use na::Matrix4;
 use na::Vector3;
 use na::Vector4;
+use na::Unit;
+use na::U3;
 use Light;
 use Object;
 use Ray;
 use Scene;
+use shading::Material;
+
+use rand;
+use rand::Rng;
+
+use crate::util::math;
 
 pub struct Parameters
 {
@@ -74,6 +84,8 @@ pub fn render(parameters: Parameters)
 		lights.len()
 	);
 
+	println!("{} worker threads", num_cpus::get());
+
 	let stw = create_screen_to_world_matrix(
 		image_width,
 		image_height,
@@ -115,7 +127,11 @@ pub fn render(parameters: Parameters)
 		};
 
 		let total_pixels = image_width * image_height;
+		let five_percent_pixels = total_pixels / 20;
 		let mut received_pixels = 0;
+
+		print!("\rProgress: 0%");
+		std::io::stdout().flush().unwrap();
 
 		for pixel_colour in rx {
 			image.put_pixel(
@@ -125,15 +141,16 @@ pub fn render(parameters: Parameters)
 			);
 			received_pixels += 1;
 
-			if received_pixels % 1000 == 0 {
+			if received_pixels % five_percent_pixels == 0{
 				print!(
-					"Progress: {:.0}%\r",
+					"\rProgress: {:.0}%",
 					(received_pixels as f32 / total_pixels as f32) * 100.0
 				);
+				std::io::stdout().flush().unwrap();
 			}
 		}
 
-		println!("Progress: 100%");
+		println!("\rProgress: 100%");
 		println!("Done");
 	}
 
@@ -187,53 +204,107 @@ fn trace_worker(
 	}
 }
 
+fn direct_lighting(point: Vector4<f32>, w_out: Vector4<f32>, normal: Vector4<f32>, material: &dyn Material, scene: &Scene) -> Vector3<f32>
+{
+	let mut l_out = Vector3::zeros();
+	
+	for light in scene.get_lights().iter() {
+		if light.has_delta_distribution() {
+			let (l_in, w_in, _pdf) = light.sample(&point, (0.0, 0.0));
+
+			//let shadow_ray = Ray::new2(&point, &w_in);
+			let shadow_ray = Ray::new(point, light.get_position());
+			if let Some((shadow_hit, _)) = scene.check_hit(&shadow_ray) {
+				if shadow_hit.intersect <= 1.0 {
+					continue;
+				}
+			}
+
+			l_out += material.bsdf(&w_in, &w_out).component_mul(&l_in);
+		}
+		else {
+			// TODO: Non-delta lights
+		}
+	}
+
+	l_out
+}
+
+fn generate_path(initial_direction: Ray, scene: &Scene) -> Vector3<f32>
+{
+	let mut ray = initial_direction;
+	let mut rng = rand::thread_rng();
+
+	let max_depth = 10;
+	let mut current_depth = 0;
+
+	let vertical = Vector4::new(0.0, 0.0, 1.0, 0.0);
+
+	let mut radiance = Vector3::zeros();
+	let mut beta = Vector3::new(1.0, 1.0, 1.0);
+	loop {
+		if current_depth >= max_depth {
+			break;
+		}
+
+		if let Some((hit, material)) = scene.check_hit(&ray) {
+			let p = ray.origin() + (hit.intersect * (ray.point() - ray.origin()));
+			let normal = hit.normal.normalize();
+			let w_out = (ray.origin() - p).normalize();
+
+			let direct_illumination = direct_lighting(p, w_out, normal, material, scene);
+			radiance += beta.component_mul(&direct_illumination);
+
+			let rotation_axis = math::cross_4d(vertical, normal);
+			let rotation_angle = normal.dot(&vertical).acos();
+			let transform = Matrix4::from_axis_angle(&Unit::new_normalize(rotation_axis.fixed_rows::<U3>(0).into()), rotation_angle);
+
+			let w_out = transform * w_out;
+			let (scattering, w_in, pdf) = material.sample_bsdf(&w_out, (rng.gen(), rng.gen()));
+			let w_in = transform.try_inverse().unwrap() * w_in;
+
+			beta.component_mul_assign(&((scattering * normal.dot(&w_in).abs()) / pdf));
+
+			current_depth += 1;
+			if current_depth > 3 {
+				let q = 0.5_f32.max(1.0 - beta.y);
+				let term: f32 = rng.gen();
+
+				if term < q {
+					break;
+				}
+
+				beta /= 1.0 - q;
+			}
+
+			let ray_point = Vector4::new(w_in.x * 5.0, w_in.y * 5.0, w_in.z * 5.0, 1.0);
+			ray = Ray::new(p, ray_point);
+		}
+		else {
+			break;
+		}
+	}
+
+	radiance
+}
+
 fn trace_pixel(x: u32, y: u32, stw: Matrix4<f32>, eye: Vector4<f32>, scene: &Scene) -> [u8; 3]
 {
 	let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
-	let ray = Ray::new(eye, pworld);
 
-	let colour_vec = match scene.check_hit(&ray) {
-		Some((hit, material)) => {
-			let contact_point = ray.origin() + (hit.intersect * (ray.point() - ray.origin()));
-			let view_vector = (eye - contact_point).normalize();
-			let normal = hit.normal.normalize();
+	let num_samples = 1000;
 
-			let ac = scene
-				.get_ambient()
-				.component_mul(&material.ambient_component());
-			let mut dc = Vector3::new(0.0, 0.0, 0.0);
-			let mut sc = Vector3::new(0.0, 0.0, 0.0);
+	let mut radiance = Vector3::zeros();
+	for _ in 0..num_samples {
+		let ray = Ray::new(eye, pworld);
+		radiance += generate_path(ray, scene)
+	}
 
-			for light in scene.get_lights().iter() {
-				let shadow_ray = Ray::new(contact_point, light.get_position());
+	radiance /= num_samples as f32;
 
-				if let Some((shadow_hit, _)) = scene.check_hit(&shadow_ray) {
-					if shadow_hit.intersect <= 1.0 {
-						continue;
-					}
-				}
-
-				let light_vector = light.get_position() - contact_point;
-				let distance = light_vector.dot(&light_vector).sqrt();
-
-				let light_vector = light_vector.normalize();
-
-				sc += light
-					.attenuate(distance)
-					.component_mul(&material.specular_component(view_vector, light_vector, normal));
-				dc += light
-					.attenuate(distance)
-					.component_mul(&material.diffuse_component(light_vector, normal));
-			}
-
-			ac + dc + sc
-		},
-		None => Vector3::new(0.0, 0.0, 0.0),
-	};
-
-	let r = (255.0 * colour_vec[0].min(1.0)) as u8;
-	let g = (255.0 * colour_vec[1].min(1.0)) as u8;
-	let b = (255.0 * colour_vec[2].min(1.0)) as u8;
+	let r = (255.0 * radiance[0].min(1.0)) as u8;
+	let g = (255.0 * radiance[1].min(1.0)) as u8;
+	let b = (255.0 * radiance[2].min(1.0)) as u8;
 
 	[r, g, b]
 }
@@ -270,7 +341,7 @@ fn create_screen_to_world_matrix(
 	t4 * r3 * s2 * t1
 }
 
-const BLOCK_SIZE: u32 = 64;
+const BLOCK_SIZE: u32 = 8;
 fn divide_frame(width: u32, height: u32) -> Vec<FrameSection>
 {
 	let cols = width / BLOCK_SIZE;

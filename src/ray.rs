@@ -23,6 +23,15 @@ impl Ray
 		}
 	}
 
+	pub fn new2(origin: &Vector4<f32>, direction: &Vector4<f32>) -> Self
+	{
+		Ray {
+			id: NEXT_RAY_ID.fetch_add(1, Ordering::Relaxed),
+			point: origin + direction,
+			origin: *origin,
+		}
+	}
+
 	pub fn id(&self) -> u64
 	{
 		self.id

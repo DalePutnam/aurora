@@ -98,6 +98,10 @@ impl SceneBuilder
 				.create_function(Light::lua_new)
 				.expect("Failed to create light constructor");
 
+			let point_light_ctor = lua_ctx
+				.create_function(Light::lua_new_point_light)
+				.expect("Failed to create light constructor");
+
 			// Render function
 			let render = lua_ctx
 				.create_function(
@@ -148,6 +152,8 @@ impl SceneBuilder
 				.expect("Failed to assign Material constructor to gr.material");
 			gr.set("light", light_ctor)
 				.expect("Failed to assign Light constructor to gr.light");
+			gr.set("point_light", point_light_ctor)
+				.expect("Failed to assign Light constructor to gr.point_light");
 			gr.set("render", render)
 				.expect("Failed to assign render function to gr.render");
 
