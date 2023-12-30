@@ -204,6 +204,22 @@ fn trace_worker(
 	}
 }
 
+fn get_transform_to_interaction_frame(normal: &Vector4<f32>) -> Matrix4<f32>
+{
+	let vertical = Vector4::new(0.0, 0.0, 1.0, 0.0);
+	let nvertical = -vertical;
+
+	let rotation_axis = if *normal == vertical || *normal == nvertical {
+		Vector4::new(1.0, 0.0, 0.0, 0.0)
+	} else {
+		math::cross_4d(vertical, *normal)
+	};
+
+	let rotation_angle = normal.dot(&vertical).acos();
+
+	Matrix4::from_axis_angle(&Unit::new_normalize(rotation_axis.fixed_rows::<U3>(0).into()), -rotation_angle)
+}
+
 fn direct_lighting(point: Vector4<f32>, w_out: Vector4<f32>, normal: Vector4<f32>, material: &dyn Material, scene: &Scene) -> Vector3<f32>
 {
 	let mut l_out = Vector3::zeros();
@@ -220,6 +236,11 @@ fn direct_lighting(point: Vector4<f32>, w_out: Vector4<f32>, normal: Vector4<f32
 				}
 			}
 
+			let transform = get_transform_to_interaction_frame(&normal);
+
+			let w_out = transform * w_out;
+			let w_in = transform * w_in;
+			
 			l_out += material.bsdf(&w_in, &w_out).component_mul(&l_in);
 		}
 		else {
@@ -238,8 +259,6 @@ fn generate_path(initial_direction: Ray, scene: &Scene) -> Vector3<f32>
 	let max_depth = 10;
 	let mut current_depth = 0;
 
-	let vertical = Vector4::new(0.0, 0.0, 1.0, 0.0);
-
 	let mut radiance = Vector3::zeros();
 	let mut beta = Vector3::new(1.0, 1.0, 1.0);
 	loop {
@@ -252,15 +271,22 @@ fn generate_path(initial_direction: Ray, scene: &Scene) -> Vector3<f32>
 			let normal = hit.normal.normalize();
 			let w_out = (ray.origin() - p).normalize();
 
+			// At some point when emissive objects are supported we will have to conditionally account for it here
+			// Consult pbrt 3rd edition for details
+
 			let direct_illumination = direct_lighting(p, w_out, normal, material, scene);
 			radiance += beta.component_mul(&direct_illumination);
 
-			let rotation_axis = math::cross_4d(vertical, normal);
-			let rotation_angle = normal.dot(&vertical).acos();
-			let transform = Matrix4::from_axis_angle(&Unit::new_normalize(rotation_axis.fixed_rows::<U3>(0).into()), rotation_angle);
+			let transform = get_transform_to_interaction_frame(&normal);
 
 			let w_out = transform * w_out;
 			let (scattering, w_in, pdf) = material.sample_bsdf(&w_out, (rng.gen(), rng.gen()));
+
+			// Degenerate case causes beta to become infinite and the pixel to become white
+			if pdf == 0.0 {
+				break;
+			}
+
 			let w_in = transform.try_inverse().unwrap() * w_in;
 
 			beta.component_mul_assign(&((scattering * normal.dot(&w_in).abs()) / pdf));
@@ -277,8 +303,7 @@ fn generate_path(initial_direction: Ray, scene: &Scene) -> Vector3<f32>
 				beta /= 1.0 - q;
 			}
 
-			let ray_point = Vector4::new(w_in.x * 5.0, w_in.y * 5.0, w_in.z * 5.0, 1.0);
-			ray = Ray::new(p, ray_point);
+			ray = Ray::new(p, p + w_in);
 		}
 		else {
 			break;
