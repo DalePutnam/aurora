@@ -14,7 +14,7 @@ pub fn concentric_sample_disk(mut u: (f32, f32)) -> Vector4<f32>
 		(u.0, (std::f32::consts::PI / 4.0) * (u.1 / u.0))
 	}
 	else {
-		(u.1, (std::f32::consts::PI / 2.0) - (std::f32::consts::PI / 4.0) * (u.1 / u.0))
+		(u.1, (std::f32::consts::PI / 2.0) - (std::f32::consts::PI / 4.0) * (u.0 / u.1))
 	};
 
 	Vector4::new(theta.cos(), theta.sin(), 0.0, 0.0) * r
