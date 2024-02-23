@@ -24,8 +24,9 @@ use Ray;
 use Scene;
 use shading::Material;
 
-use rand;
 use rand::Rng;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 
 use crate::util::math;
 
@@ -107,7 +108,9 @@ pub fn render(parameters: Parameters)
 	);
 
 	if let Some(p) = &parameters.single_pixel {
-		let rgb = trace_pixel(p.0, p.1, stw, eye_4d, scene.as_ref());
+		let mut rng = StdRng::seed_from_u64(0);
+
+		let rgb = trace_pixel(p.0, p.1, stw, eye_4d, scene.as_ref(), &mut rng);
 		image.put_pixel(p.0, p.1, *Rgb::from_slice(&rgb));
 	} else {
 		let rx = {
@@ -189,9 +192,11 @@ fn trace_worker(
 			}
 		};
 
+		let mut rng = StdRng::from_entropy();
+
 		for x in frame_section.x..frame_section.x + frame_section.width {
 			for y in frame_section.y..frame_section.y + frame_section.height {
-				let rgb = trace_pixel(x, y, stw, eye, &scene);
+				let rgb = trace_pixel(x, y, stw, eye, &scene, &mut rng);
 
 				tx.send(PixelColour {
 					x: x,
@@ -251,10 +256,9 @@ fn direct_lighting(point: Vector4<f32>, w_out: Vector4<f32>, normal: Vector4<f32
 	l_out
 }
 
-fn generate_path(initial_direction: Ray, scene: &Scene) -> Vector3<f32>
+fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vector3<f32>
 {
 	let mut ray = initial_direction;
-	let mut rng = rand::thread_rng();
 
 	let max_depth = 10;
 	let mut current_depth = 0;
@@ -313,7 +317,7 @@ fn generate_path(initial_direction: Ray, scene: &Scene) -> Vector3<f32>
 	radiance
 }
 
-fn trace_pixel(x: u32, y: u32, stw: Matrix4<f32>, eye: Vector4<f32>, scene: &Scene) -> [u8; 3]
+fn trace_pixel(x: u32, y: u32, stw: Matrix4<f32>, eye: Vector4<f32>, scene: &Scene, rng: &mut StdRng) -> [u8; 3]
 {
 	let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
 
@@ -322,7 +326,7 @@ fn trace_pixel(x: u32, y: u32, stw: Matrix4<f32>, eye: Vector4<f32>, scene: &Sce
 	let mut radiance = Vector3::zeros();
 	for _ in 0..num_samples {
 		let ray = Ray::new(eye, pworld);
-		radiance += generate_path(ray, scene)
+		radiance += generate_path(ray, scene, rng);
 	}
 
 	radiance /= num_samples as f32;
