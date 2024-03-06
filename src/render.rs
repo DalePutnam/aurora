@@ -244,8 +244,8 @@ fn direct_lighting(point: Vector4<f32>, w_out: Vector4<f32>, normal: Vector4<f32
 
 			let w_out = transform * w_out;
 			let w_in = transform * w_in;
-			
-			l_out += material.bsdf(&w_in, &w_out).component_mul(&l_in);
+
+			l_out += (material.bsdf(&w_in, &w_out) * w_in.z.abs()).component_mul(&l_in);
 		}
 		else {
 			// TODO: Non-delta lights
