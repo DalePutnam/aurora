@@ -318,12 +318,15 @@ fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vec
 
 fn trace_pixel(x: u32, y: u32, stw: Matrix4<f32>, eye: Vector4<f32>, scene: &Scene, rng: &mut StdRng) -> [u8; 3]
 {
-	let pworld = stw * Vector4::new(x as f32, y as f32, 0.0, 1.0);
-
 	let num_samples = 1000;
 
 	let mut radiance = Vector3::zeros();
 	for _ in 0..num_samples {
+		let offset_x = rng.gen::<f32>();
+		let offset_y = rng.gen::<f32>();
+	
+		let pworld = stw * Vector4::new((x as f32) + offset_x, (y as f32) + offset_y, 0.0, 1.0);
+
 		let ray = Ray::new(eye, pworld);
 		radiance += generate_path(ray, scene, rng);
 	}
