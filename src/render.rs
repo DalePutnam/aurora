@@ -217,12 +217,11 @@ fn get_transform_to_interaction_frame(normal: &Vector4<f32>) -> Matrix4<f32>
 	let rotation_axis = if *normal == vertical || *normal == nvertical {
 		Vector4::new(1.0, 0.0, 0.0, 0.0)
 	} else {
-		math::cross_4d(vertical, *normal)
+		math::cross_4d(*normal, vertical)
 	};
 
 	let rotation_angle = normal.dot(&vertical).acos();
-
-	Matrix4::from_axis_angle(&Unit::new_normalize(rotation_axis.fixed_rows::<U3>(0).into()), -rotation_angle)
+	Matrix4::from_axis_angle(&Unit::new_normalize(rotation_axis.fixed_rows::<U3>(0).into()), rotation_angle)
 }
 
 fn direct_lighting(point: Vector4<f32>, w_out: Vector4<f32>, normal: Vector4<f32>, material: &dyn Material, scene: &Scene) -> Vector3<f32>
