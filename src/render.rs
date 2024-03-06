@@ -5,7 +5,6 @@ use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
-use std::time;
 use std::io::Write;
 
 use image::png;
