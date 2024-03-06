@@ -291,12 +291,12 @@ fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vec
 			}
 
 			let w_in = transform.try_inverse().unwrap() * w_in;
-
 			beta.component_mul_assign(&((scattering * normal.dot(&w_in).abs()) / pdf));
+			let luminance = 0.2126_f32 * beta.x + 0.7152 * beta.y + 0.0722 * beta.z;
 
 			current_depth += 1;
 			if current_depth > 3 {
-				let q = 0.5_f32.max(1.0 - beta.y);
+				let q = 0.05_f32.max(1.0 - luminance);
 				let term: f32 = rng.gen();
 
 				if term < q {
