@@ -95,9 +95,8 @@ impl Primitive for Mesh
 {
     fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
     {
-        let point = transform * ray.point();
+        let direction = transform * ray.direction();
         let origin = transform * ray.origin();
-        let vector = point - origin;
 
         let mut intersect = f32::INFINITY;
         let mut normal = Vector4::new(0.0, 0.0, 0.0, 0.0);
@@ -112,7 +111,7 @@ impl Primitive for Mesh
             let edge1 = v2 - v1;
             let edge2 = v3 - v1;
 
-            let h = math::cross_4d(vector, edge2);
+            let h = math::cross_4d(direction, edge2);
             let a = edge1.dot(&h);
 
             if math::near_zero(a) {
@@ -128,7 +127,7 @@ impl Primitive for Mesh
             }
 
             let q = math::cross_4d(s, edge1);
-            let v = f * vector.dot(&q);
+            let v = f * direction.dot(&q);
 
             if v < 0.0 || u + v > 1.0 {
                 continue;
@@ -156,7 +155,7 @@ impl Primitive for Mesh
         }
 
         if intersect < f32::INFINITY {
-            if vector.dot(&normal) > 0.0 {
+            if direction.dot(&normal) > 0.0 {
                 normal = -normal;
             }
 

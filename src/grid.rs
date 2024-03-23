@@ -146,7 +146,7 @@ impl Grid
 
     pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
     {
-        let ray_direction = ray.point() - ray.origin();
+        let ray_direction = ray.direction();
 
         let (step_x, step_y, step_z) = self.get_step_directions(ray_direction);
         let (just_out_x, just_out_y, just_out_z) = self.get_step_out_values(ray_direction);
@@ -329,7 +329,7 @@ impl Grid
         volume_sum / corner_vec.len() as f32
     }
 
-    fn get_step_directions(&self, ray_direction: Vector4<f32>) -> (i64, i64, i64)
+    fn get_step_directions(&self, ray_direction: &Vector4<f32>) -> (i64, i64, i64)
     {
         let step_x = if ray_direction.x >= 0.0 { 1 } else { -1 };
         let step_y = if ray_direction.y >= 0.0 { 1 } else { -1 };
@@ -338,7 +338,7 @@ impl Grid
         (step_x, step_y, step_z)
     }
 
-    fn get_step_out_values(&self, ray_direction: Vector4<f32>) -> (i64, i64, i64)
+    fn get_step_out_values(&self, ray_direction: &Vector4<f32>) -> (i64, i64, i64)
     {
         let just_out_x = if ray_direction.x >= 0.0 {
             self.num_cells.x as i64
@@ -373,8 +373,8 @@ impl Grid
             || grid_z >= self.num_cells.z as i64
         {
             if let Some(t) = self.intersect_grid_bounds(ray) {
-                let grid_intersect = ray.origin() + (t * (ray.point() - ray.origin()));
-                Some(self.get_cell_from_point(grid_intersect))
+                let grid_intersect = ray.origin() + (t * ray.direction());
+                Some(self.get_cell_from_point(&grid_intersect))
             } else {
                 None
             }
@@ -383,7 +383,7 @@ impl Grid
         }
     }
 
-    fn get_cell_from_point(&self, ray_origin: Vector4<f32>) -> (i64, i64, i64)
+    fn get_cell_from_point(&self, ray_origin: &Vector4<f32>) -> (i64, i64, i64)
     {
         let offset_x = ray_origin.x - self.position.x;
         let offset_y = ray_origin.y - self.position.y;
@@ -440,12 +440,12 @@ impl Grid
         let second_point = cell_position + second_point_offset;
 
         let la = (ray.origin() - first_point).dot(&normal);
-        let lb = (ray.point() - first_point).dot(&normal);
+        let lb = ((ray.origin() + ray.direction()) - first_point).dot(&normal);
 
         let t_max = f32::abs(la / (la - lb));
 
         let la = (ray.origin() - second_point).dot(&normal);
-        let lb = (ray.point() - second_point).dot(&normal);
+        let lb = ((ray.origin() + ray.direction()) - second_point).dot(&normal);
 
         let t_delta = f32::abs(t_max - (la / (la - lb)));
 
@@ -454,7 +454,7 @@ impl Grid
 
     fn intersect_grid_bounds(&self, ray: &Ray) -> Option<f32>
     {
-        let ray_direction = ray.point() - ray.origin();
+        let ray_direction = ray.direction();
 
         let inv_direction = Vector4::repeat(1.0).component_div(&ray_direction);
 

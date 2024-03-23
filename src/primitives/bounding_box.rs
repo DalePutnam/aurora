@@ -30,11 +30,10 @@ impl BoundingBox
 
     pub fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> bool
     {
-        let point = transform * ray.point();
+        let direction = transform * ray.direction();
         let origin = transform * ray.origin();
 
-        let ray_direction = point - origin;
-        let inv_direction = Vector4::repeat(1.0).component_div(&ray_direction);
+        let inv_direction = Vector4::repeat(1.0).component_div(&direction);
 
         let min = (self.lower_point.x - origin.x) * inv_direction.x;
         let max = (self.upper_point.x - origin.x) * inv_direction.x;

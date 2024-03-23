@@ -39,14 +39,13 @@ impl Primitive for Sphere
 {
     fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
     {
-        let point = transform * ray.point();
+        let direction = transform * ray.direction();
         let origin = transform * ray.origin();
 
-        let po = point - origin;
         let oc = origin - self.position;
 
-        let a = po.dot(&po);
-        let b = po.dot(&oc) * 2.0;
+        let a = direction.dot(&direction);
+        let b = direction.dot(&oc) * 2.0;
         let c = oc.dot(&oc) - (self.radius * self.radius);
 
         match math::quadratic_roots(a, b, c) {
@@ -69,10 +68,10 @@ impl Primitive for Sphere
                         }
                     };
 
-                    let mut n = (origin + (t * po)) - self.position;
+                    let mut n = (origin + (t * direction)) - self.position;
 
                     // Invert normal if inside sphere
-                    if n.dot(&(origin - point)) < 0.0 {
+                    if n.dot(&(-direction)) < 0.0 {
                         n = -n;
                     }
 

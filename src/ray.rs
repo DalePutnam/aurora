@@ -8,26 +8,17 @@ static NEXT_RAY_ID: AtomicU64 = AtomicU64::new(0);
 pub struct Ray
 {
     id: u64,
-    point: Vector4<f32>,
     origin: Vector4<f32>,
+    direction: Vector4<f32>,
 }
 
 impl Ray
 {
-    pub fn new(origin: Vector4<f32>, point: Vector4<f32>) -> Self
+    pub fn new(origin: &Vector4<f32>, direction: &Vector4<f32>) -> Self
     {
         Ray {
             id: NEXT_RAY_ID.fetch_add(1, Ordering::Relaxed),
-            point: point,
-            origin: origin,
-        }
-    }
-
-    pub fn new2(origin: &Vector4<f32>, direction: &Vector4<f32>) -> Self
-    {
-        Ray {
-            id: NEXT_RAY_ID.fetch_add(1, Ordering::Relaxed),
-            point: origin + direction,
+            direction: *direction,
             origin: *origin,
         }
     }
@@ -37,14 +28,14 @@ impl Ray
         self.id
     }
 
-    pub fn point(&self) -> Vector4<f32>
+    pub fn direction(&self) -> &Vector4<f32>
     {
-        self.point
+        &self.direction
     }
 
-    pub fn origin(&self) -> Vector4<f32>
+    pub fn origin(&self) -> &Vector4<f32>
     {
-        self.origin
+        &self.origin
     }
 }
 

@@ -240,7 +240,7 @@ fn direct_lighting(
             let (l_in, w_in, _pdf) = light.sample(&point, (0.0, 0.0));
 
             //let shadow_ray = Ray::new2(&point, &w_in);
-            let shadow_ray = Ray::new(point, light.get_position());
+            let shadow_ray = Ray::new(&point, &(light.get_position() - point));
             if let Some((shadow_hit, _)) = scene.check_hit(&shadow_ray) {
                 if shadow_hit.intersect <= 1.0 {
                     continue;
@@ -276,7 +276,7 @@ fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vec
         }
 
         if let Some((hit, material)) = scene.check_hit(&ray) {
-            let p = ray.origin() + (hit.intersect * (ray.point() - ray.origin()));
+            let p = ray.origin() + (hit.intersect * ray.direction());
             let normal = hit.normal.normalize();
             let w_out = (ray.origin() - p).normalize();
 
@@ -312,7 +312,7 @@ fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vec
                 beta /= 1.0 - q;
             }
 
-            ray = Ray::new(p, p + w_in);
+            ray = Ray::new(&p, &w_in);
         } else {
             break;
         }
@@ -339,7 +339,7 @@ fn trace_pixel(
 
         let pworld = stw * Vector4::new((x as f32) + offset_x, (y as f32) + offset_y, 0.0, 1.0);
 
-        let ray = Ray::new(eye, pworld);
+        let ray = Ray::new(&eye, &(pworld - eye));
         radiance += generate_path(ray, scene, rng);
     }
 

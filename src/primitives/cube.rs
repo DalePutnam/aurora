@@ -49,11 +49,10 @@ impl Primitive for Cube
             Right,
         }
 
-        let point = transform * ray.point();
+        let direction = transform * ray.direction();
         let origin = transform * ray.origin();
 
-        let ray_direction = point - origin;
-        let inv_direction = Vector4::repeat(1.0).component_div(&ray_direction);
+        let inv_direction = Vector4::repeat(1.0).component_div(&direction);
 
         let min = (self.position.x - origin.x) * inv_direction.x;
         let max = (self.position.x + self.size - origin.x) * inv_direction.x;
