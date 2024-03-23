@@ -30,14 +30,14 @@ use lua::SceneBuilder;
 
 fn main()
 {
-	let parameters = cli::parse_args();
+    let parameters = cli::parse_args();
 
-	let input_file = parameters.input_file.clone();
+    let input_file = parameters.input_file.clone();
 
-	let scene_builder = SceneBuilder::new(parameters);
+    let scene_builder = SceneBuilder::new(parameters);
 
-	match scene_builder.run_build_script(&input_file) {
-		Ok(_) => (),
-		Err(e) => println!("{}", e),
-	};
+    match scene_builder.run_build_script(&input_file) {
+        Ok(_) => (),
+        Err(e) => println!("{}", e),
+    };
 }
