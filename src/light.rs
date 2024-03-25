@@ -34,7 +34,7 @@ impl Light
         }
     }
 
-    pub fn sample(&self, point: &Vector4<f32>, u: (f32, f32)) -> (Vector3<f32>, Vector4<f32>, f32)
+    pub fn sample(&self, point: &Vector4<f32>, _: (f32, f32)) -> (Vector3<f32>, Vector4<f32>, f32)
     {
         let w = self.position - point;
 

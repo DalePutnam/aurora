@@ -62,7 +62,7 @@ struct Triangle
 {
     pub vertices: (usize, usize, usize),
     pub normals: Option<(usize, usize, usize)>,
-    pub texture_coordinates: Option<(usize, usize, usize)>,
+    pub _texture_coords: Option<(usize, usize, usize)>,
 }
 
 impl Mesh

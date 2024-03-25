@@ -196,7 +196,7 @@ fn parse_face_data(parts: &Vec<&str>) -> Result<Triangle, String>
         _ => return Err(String::from("Some vertices missing normal data")),
     };
 
-    let texture_coordinates = match (v1_data.2, v2_data.2, v3_data.2) {
+    let texture_coords = match (v1_data.2, v2_data.2, v3_data.2) {
         (Some(vt1), Some(vt2), Some(vt3)) => Some((vt1, vt2, vt3)),
         (None, None, None) => None,
         _ => {
@@ -209,7 +209,7 @@ fn parse_face_data(parts: &Vec<&str>) -> Result<Triangle, String>
     Ok(Triangle {
         vertices: vertices,
         normals: normals,
-        texture_coordinates: texture_coordinates,
+        _texture_coords: texture_coords,
     })
 }
 
