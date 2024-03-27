@@ -13,20 +13,16 @@ use image::ImageBuffer;
 use image::Pixel;
 use image::Rgb;
 use na::Matrix4;
-use na::Unit;
 use na::Vector3;
 use na::Vector4;
-use na::U3;
 use rand::rngs::StdRng;
 use rand::Rng;
 use rand::SeedableRng;
-use shading::Material;
 use Light;
 use Object;
 use Ray;
 use Scene;
-
-use crate::util::math;
+use Interaction;
 
 pub struct Parameters
 {
@@ -207,29 +203,8 @@ fn trace_worker(
     }
 }
 
-fn get_transform_to_interaction_frame(normal: &Vector4<f32>) -> Matrix4<f32>
-{
-    let vertical = Vector4::new(0.0, 0.0, 1.0, 0.0);
-    let nvertical = -vertical;
-
-    let rotation_axis = if *normal == vertical || *normal == nvertical {
-        Vector4::new(1.0, 0.0, 0.0, 0.0)
-    } else {
-        math::cross_4d(*normal, vertical)
-    };
-
-    let rotation_angle = normal.dot(&vertical).acos();
-    Matrix4::from_axis_angle(
-        &Unit::new_normalize(rotation_axis.fixed_rows::<U3>(0).into()),
-        rotation_angle,
-    )
-}
-
 fn direct_lighting(
-    point: Vector4<f32>,
-    w_out: Vector4<f32>,
-    normal: Vector4<f32>,
-    material: &dyn Material,
+    interaction: &Interaction,
     scene: &Scene,
 ) -> Vector3<f32>
 {
@@ -237,22 +212,18 @@ fn direct_lighting(
 
     for light in scene.get_lights().iter() {
         if light.has_delta_distribution() {
-            let (l_in, w_in, _pdf) = light.sample(&point, (0.0, 0.0));
+            let point = interaction.get_intersection();
 
-            //let shadow_ray = Ray::new2(&point, &w_in);
-            let shadow_ray = Ray::new(&point, &(light.get_position() - point));
-            if let Some((shadow_hit, _)) = scene.check_hit(&shadow_ray) {
-                if shadow_hit.intersect <= 1.0 {
+            let (l_in, w_in, _pdf) = light.sample(point, (0.0, 0.0));
+
+            let shadow_ray = Ray::new(point, &(light.get_position() - point));
+            if let Some(interaction) = scene.check_hit(&shadow_ray) {
+                if interaction.get_intersect_scalar() <= 1.0 {
                     continue;
                 }
             }
 
-            let transform = get_transform_to_interaction_frame(&normal);
-
-            let w_out = transform * w_out;
-            let w_in = transform * w_in;
-
-            l_out += (material.bsdf(&w_in, &w_out) * w_in.z.abs()).component_mul(&l_in);
+            l_out += interaction.evaluate_bsdf(&w_in).component_mul(&l_in);
         } else {
             // TODO: Non-delta lights
         }
@@ -275,29 +246,22 @@ fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vec
             break;
         }
 
-        if let Some((hit, material)) = scene.check_hit(&ray) {
-            let p = ray.origin() + (hit.intersect * ray.direction());
-            let normal = hit.normal.normalize();
-            let w_out = (ray.origin() - p).normalize();
+        if let Some(interaction) = scene.check_hit(&ray) {
 
             // At some point when emissive objects are supported we will have to conditionally account for it here
             // Consult pbrt 3rd edition for details
 
-            let direct_illumination = direct_lighting(p, w_out, normal, material, scene);
+            let direct_illumination = direct_lighting(&interaction, scene);
             radiance += beta.component_mul(&direct_illumination);
 
-            let transform = get_transform_to_interaction_frame(&normal);
-
-            let w_out = transform * w_out;
-            let (scattering, w_in, pdf) = material.sample_bsdf(&w_out, (rng.gen(), rng.gen()));
+            let (scattering, w_in, pdf) = interaction.sample_bsdf((rng.gen(), rng.gen()));
 
             // Degenerate case causes beta to become infinite and the pixel to become white
             if pdf == 0.0 {
                 break;
             }
 
-            let w_in = transform.try_inverse().unwrap() * w_in;
-            beta.component_mul_assign(&((scattering * normal.dot(&w_in).abs()) / pdf));
+            beta.component_mul_assign(&(scattering / pdf));
             let luminance = 0.2126_f32 * beta.x + 0.7152 * beta.y + 0.0722 * beta.z;
 
             current_depth += 1;
@@ -312,7 +276,7 @@ fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vec
                 beta /= 1.0 - q;
             }
 
-            ray = Ray::new(&p, &w_in);
+            ray = Ray::new(interaction.get_intersection(), &w_in);
         } else {
             break;
         }

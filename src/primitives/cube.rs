@@ -1,13 +1,10 @@
 use std::f32;
 use std::fmt;
 
-use na::Matrix4;
 use na::Vector3;
 use na::Vector4;
 use primitives::Primitive;
 use util::math;
-use Hit;
-use Ray;
 
 #[derive(fmt::Debug)]
 pub struct Cube
@@ -37,7 +34,12 @@ impl Cube
 
 impl Primitive for Cube
 {
-    fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
+    //fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
+    fn intersect(
+        &self,
+        ray_origin: &Vector4<f32>,
+        ray_direction: &Vector4<f32>,
+    ) -> Option<(f32, Vector4<f32>, (f32, f32))>
     {
         enum Faces
         {
@@ -49,13 +51,10 @@ impl Primitive for Cube
             Right,
         }
 
-        let direction = transform * ray.direction();
-        let origin = transform * ray.origin();
+        let inv_direction = Vector4::repeat(1.0).component_div(ray_direction);
 
-        let inv_direction = Vector4::repeat(1.0).component_div(&direction);
-
-        let min = (self.position.x - origin.x) * inv_direction.x;
-        let max = (self.position.x + self.size - origin.x) * inv_direction.x;
+        let min = (self.position.x - ray_origin.x) * inv_direction.x;
+        let max = (self.position.x + self.size - ray_origin.x) * inv_direction.x;
 
         let (mut t_min, mut face_min, mut t_max, mut face_max) = if inv_direction.x >= 0.0 {
             (min, Faces::Left, max, Faces::Right)
@@ -63,8 +62,8 @@ impl Primitive for Cube
             (max, Faces::Right, min, Faces::Left)
         };
 
-        let min = (self.position.y - origin.y) * inv_direction.y;
-        let max = (self.position.y + self.size - origin.y) * inv_direction.y;
+        let min = (self.position.y - ray_origin.y) * inv_direction.y;
+        let max = (self.position.y + self.size - ray_origin.y) * inv_direction.y;
 
         let (ty_min, y_min_face, ty_max, y_max_face) = if inv_direction.y >= 0.0 {
             (min, Faces::Bottom, max, Faces::Top)
@@ -86,8 +85,8 @@ impl Primitive for Cube
             face_max = y_max_face;
         }
 
-        let min = (self.position.z - origin.z) * inv_direction.z;
-        let max = (self.position.z + self.size - origin.z) * inv_direction.z;
+        let min = (self.position.z - ray_origin.z) * inv_direction.z;
+        let max = (self.position.z + self.size - ray_origin.z) * inv_direction.z;
 
         let (tz_min, z_face_min, tz_max, z_face_max) = if inv_direction.z >= 0.0 {
             (min, Faces::Back, max, Faces::Front)
@@ -117,7 +116,7 @@ impl Primitive for Cube
             return None;
         };
 
-        let local_normal = match face {
+        let normal = match face {
             Faces::Right => Vector4::new(1.0, 0.0, 0.0, 0.0),
             Faces::Left => Vector4::new(-1.0, 0.0, 0.0, 0.0),
             Faces::Top => Vector4::new(0.0, 1.0, 0.0, 0.0),
@@ -126,15 +125,15 @@ impl Primitive for Cube
             Faces::Back => Vector4::new(0.0, 0.0, -1.0, 0.0),
         };
 
-        let world_normal = math::transform_normals(local_normal, transform);
-
+        //let world_normal = math::transform_normals(local_normal, transform);
         // TODO: UV value calculation
 
-        Some(Hit {
-            intersect: intersect,
-            normal: world_normal,
-            uv: (0.0, 0.0),
-        })
+        // Some(Hit {
+        //     intersect: intersect,
+        //     normal: world_normal,
+        //     uv: (0.0, 0.0),
+        // })
+        Some((intersect, normal, (0.0, 0.0)))
     }
 
     fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>)

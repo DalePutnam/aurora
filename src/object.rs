@@ -8,8 +8,10 @@ use primitives::BoundingBox;
 use primitives::Primitive;
 use shading::Material;
 use thread_local::ThreadLocal;
-use Hit;
+use Interaction;
 use Ray;
+
+use crate::util::math;
 
 #[derive(fmt::Debug)]
 pub struct Object
@@ -60,15 +62,21 @@ impl Object
         self.transform
     }
 
-    pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
+    pub fn intersect(&self, ray: &Ray) -> Option<Interaction>
     {
         if self.ray_previously_visited(ray) {
             return None;
         }
 
+       let local_origin = self.transform * ray.origin();
+       let local_direction = self.transform * ray.direction();
+
         if self.bounding_box.hit(ray, self.transform) {
-            if let Some(hit) = self.primitive.hit(ray, self.transform) {
-                Some((hit, self.material.borrow()))
+            if let Some((intersect, local_normal, tex_coords)) = self.primitive.intersect(&local_origin, &local_direction) {
+                let intersection = ray.origin() + (intersect * ray.direction());
+                let normal = math::transform_normals(local_normal, self.transform);
+                let w_out = -ray.direction();
+                Some(Interaction::new(self.material.borrow(), intersect, &intersection, &normal, &w_out, tex_coords))
             } else {
                 None
             }

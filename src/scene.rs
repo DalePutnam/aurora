@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
 use na::Vector3;
-use shading::Material;
 use Grid;
-use Hit;
 use Light;
 use Object;
 use Ray;
+use Interaction;
 
 pub struct Scene
 {
@@ -26,7 +25,12 @@ impl Scene
         }
     }
 
-    pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
+    pub fn check_hit(&self, ray: &Ray) -> Option<Interaction>
+    {
+        self.grid.check_hit(ray)
+    }
+
+    pub fn check_intersection(&self, ray: &Ray) -> Option<Interaction>
     {
         self.grid.check_hit(ray)
     }

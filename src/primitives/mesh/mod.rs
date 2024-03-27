@@ -5,12 +5,9 @@ use std::f32;
 use std::fmt;
 use std::path::Path;
 
-use na::Matrix4;
 use na::Vector4;
 use primitives::Primitive;
 use util::math;
-use Hit;
-use Ray;
 
 use self::file::obj;
 
@@ -93,11 +90,12 @@ impl Mesh
 
 impl Primitive for Mesh
 {
-    fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
+    fn intersect(
+        &self,
+        ray_origin: &Vector4<f32>,
+        ray_direction: &Vector4<f32>,
+    ) -> Option<(f32, Vector4<f32>, (f32, f32))>
     {
-        let direction = transform * ray.direction();
-        let origin = transform * ray.origin();
-
         let mut intersect = f32::INFINITY;
         let mut normal = Vector4::new(0.0, 0.0, 0.0, 0.0);
 
@@ -111,7 +109,7 @@ impl Primitive for Mesh
             let edge1 = v2 - v1;
             let edge2 = v3 - v1;
 
-            let h = math::cross_4d(direction, edge2);
+            let h = math::cross_4d(*ray_direction, edge2);
             let a = edge1.dot(&h);
 
             if math::near_zero(a) {
@@ -119,7 +117,7 @@ impl Primitive for Mesh
             }
 
             let f = 1.0 / a;
-            let s = origin - v1;
+            let s = ray_origin - v1;
             let u = f * s.dot(&h);
 
             if u < 0.0 || u > 1.0 {
@@ -127,7 +125,7 @@ impl Primitive for Mesh
             }
 
             let q = math::cross_4d(s, edge1);
-            let v = f * direction.dot(&q);
+            let v = f * ray_direction.dot(&q);
 
             if v < 0.0 || u + v > 1.0 {
                 continue;
@@ -155,17 +153,11 @@ impl Primitive for Mesh
         }
 
         if intersect < f32::INFINITY {
-            if direction.dot(&normal) > 0.0 {
+            if ray_direction.dot(&normal) > 0.0 {
                 normal = -normal;
             }
 
-            normal = math::transform_normals(normal, transform);
-
-            Some(Hit {
-                normal: normal,
-                intersect: intersect,
-                uv: (0.0, 0.0),
-            })
+            Some((intersect, normal, (0.0, 0.0)))
         } else {
             None
         }

@@ -1,13 +1,10 @@
 use std::f32;
 use std::fmt;
 
-use na::Matrix4;
 use na::Vector3;
 use na::Vector4;
 use primitives::Primitive;
 use util::math;
-use Hit;
-use Ray;
 
 #[derive(fmt::Debug)]
 pub struct Sphere
@@ -37,15 +34,16 @@ impl Sphere
 
 impl Primitive for Sphere
 {
-    fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
+    fn intersect(
+        &self,
+        ray_origin: &Vector4<f32>,
+        ray_direction: &Vector4<f32>,
+    ) -> Option<(f32, Vector4<f32>, (f32, f32))>
     {
-        let direction = transform * ray.direction();
-        let origin = transform * ray.origin();
+        let oc = ray_origin - self.position;
 
-        let oc = origin - self.position;
-
-        let a = direction.dot(&direction);
-        let b = direction.dot(&oc) * 2.0;
+        let a = ray_direction.dot(&ray_direction);
+        let b = ray_direction.dot(&oc) * 2.0;
         let c = oc.dot(&oc) - (self.radius * self.radius);
 
         match math::quadratic_roots(a, b, c) {
@@ -54,7 +52,7 @@ impl Primitive for Sphere
                 if !math::far_from_zero_pos(root_one) && !math::far_from_zero_pos(root_two) {
                     None
                 } else {
-                    let t = if root_one <= root_two {
+                    let intersect = if root_one <= root_two {
                         if math::far_from_zero_pos(root_one) {
                             root_one
                         } else {
@@ -68,20 +66,14 @@ impl Primitive for Sphere
                         }
                     };
 
-                    let mut n = (origin + (t * direction)) - self.position;
+                    let mut normal = (ray_origin + (intersect * ray_direction)) - self.position;
 
                     // Invert normal if inside sphere
-                    if n.dot(&(-direction)) < 0.0 {
-                        n = -n;
+                    if normal.dot(&(-ray_direction)) < 0.0 {
+                        normal = -normal;
                     }
 
-                    n = math::transform_normals(n, transform);
-
-                    Some(Hit {
-                        normal: n,
-                        intersect: t,
-                        uv: (0.0, 0.0),
-                    })
+                    Some((intersect, normal, (0.0, 0.0)))
                 }
             },
         }

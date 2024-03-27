@@ -10,11 +10,10 @@ use na::Vector4;
 use num_cpus;
 use rand;
 use rand::seq::SliceRandom;
-use shading::Material;
 use util::math;
-use Hit;
 use Object;
 use Ray;
+use Interaction;
 
 pub struct Grid
 {
@@ -144,7 +143,7 @@ impl Grid
         }
     }
 
-    pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
+    pub fn check_hit(&self, ray: &Ray) -> Option<Interaction>
     {
         let ray_direction = ray.direction();
 
@@ -172,28 +171,28 @@ impl Grid
             self.get_max_and_delta(step_z, ray, cell_position, Vector4::new(0.0, 0.0, 1.0, 0.0));
 
         let mut cell = self.cell_at(grid_x as usize, grid_y as usize, grid_z as usize);
-        let mut hit: Option<(Hit, &dyn Material)> = None;
+        let mut interaction: Option<Interaction> = None;
 
         loop {
-            if let Some(cell_hit) = cell.check_hit(ray) {
-                match &hit {
-                    Some((hit_info, _)) => {
-                        if cell_hit.0.intersect < hit_info.intersect
-                            && math::far_from_zero_pos(cell_hit.0.intersect)
+            if let Some(new_interaction) = cell.check_hit(ray) {
+                match &interaction {
+                    Some(prev_interaction) => {
+                        if new_interaction.get_intersect_scalar() < prev_interaction.get_intersect_scalar()
+                            && math::far_from_zero_pos(new_interaction.get_intersect_scalar())
                         {
-                            hit = Some(cell_hit);
+                            interaction = Some(new_interaction);
                         }
                     },
                     None => {
-                        hit = Some(cell_hit);
+                        interaction = Some(new_interaction);
                     },
                 }
             }
 
-            if let Some(hit) = &hit {
-                if hit.0.intersect <= t_max_x
-                    && hit.0.intersect <= t_max_y
-                    && hit.0.intersect <= t_max_z
+            if let Some(interaction) = &interaction {
+                if interaction.get_intersect_scalar() <= t_max_x
+                    && interaction.get_intersect_scalar() <= t_max_y
+                    && interaction.get_intersect_scalar() <= t_max_z
                 {
                     break;
                 }
@@ -236,7 +235,7 @@ impl Grid
             cell = self.cell_at(grid_x as usize, grid_y as usize, grid_z as usize);
         }
 
-        hit
+        interaction
     }
 
     fn fill_worker(
@@ -563,26 +562,26 @@ impl GridCell
         cell
     }
 
-    pub fn check_hit(&self, ray: &Ray) -> Option<(Hit, &dyn Material)>
+    pub fn check_hit(&self, ray: &Ray) -> Option<Interaction>
     {
         self.objects
             .iter()
-            .fold(None, |last_hit, object| -> Option<(Hit, &dyn Material)> {
-                if let Some(hit) = object.check_hit(ray) {
-                    match last_hit {
-                        Some(last_hit) => {
-                            if hit.0.intersect < last_hit.0.intersect
-                                && math::far_from_zero_pos(hit.0.intersect)
+            .fold(None, |last_interaction, object| -> Option<Interaction> {
+                if let Some(interaction) = object.intersect(ray) {
+                    match last_interaction {
+                        Some(last_interaction) => {
+                            if interaction.get_intersect_scalar() < last_interaction.get_intersect_scalar()
+                                && math::far_from_zero_pos(interaction.get_intersect_scalar())
                             {
-                                Some(hit)
+                                Some(interaction)
                             } else {
-                                Some(last_hit)
+                                Some(last_interaction)
                             }
                         },
-                        None => Some(hit),
+                        None => Some(interaction),
                     }
                 } else {
-                    last_hit
+                    last_interaction
                 }
             })
     }
