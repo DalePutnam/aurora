@@ -1,4 +1,5 @@
 use std::fmt;
+
 use na::Vector4;
 
 pub trait Primitive: Send + Sync + fmt::Debug

@@ -8,15 +8,16 @@ extern crate rlua;
 extern crate thread_local;
 
 pub use self::grid::Grid;
+pub use self::interaction::Interaction;
 pub use self::light::Light;
 pub use self::object::Object;
 pub use self::ray::Hit;
 pub use self::ray::Ray;
 pub use self::scene::Scene;
-pub use self::interaction::Interaction;
 
 pub mod cli;
 pub mod grid;
+pub mod interaction;
 pub mod light;
 pub mod lua;
 pub mod object;
@@ -26,7 +27,6 @@ pub mod render;
 pub mod scene;
 pub mod shading;
 pub mod util;
-pub mod interaction;
 
 use lua::SceneBuilder;
 

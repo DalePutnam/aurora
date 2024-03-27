@@ -68,15 +68,24 @@ impl Object
             return None;
         }
 
-       let local_origin = self.transform * ray.origin();
-       let local_direction = self.transform * ray.direction();
+        let local_origin = self.transform * ray.origin();
+        let local_direction = self.transform * ray.direction();
 
         if self.bounding_box.hit(ray, self.transform) {
-            if let Some((intersect, local_normal, tex_coords)) = self.primitive.intersect(&local_origin, &local_direction) {
+            if let Some((intersect, local_normal, tex_coords)) =
+                self.primitive.intersect(&local_origin, &local_direction)
+            {
                 let intersection = ray.origin() + (intersect * ray.direction());
                 let normal = math::transform_normals(local_normal, self.transform);
                 let w_out = -ray.direction();
-                Some(Interaction::new(self.material.borrow(), intersect, &intersection, &normal, &w_out, tex_coords))
+                Some(Interaction::new(
+                    self.material.borrow(),
+                    intersect,
+                    &intersection,
+                    &normal,
+                    &w_out,
+                    tex_coords,
+                ))
             } else {
                 None
             }

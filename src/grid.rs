@@ -11,9 +11,9 @@ use num_cpus;
 use rand;
 use rand::seq::SliceRandom;
 use util::math;
+use Interaction;
 use Object;
 use Ray;
-use Interaction;
 
 pub struct Grid
 {
@@ -177,7 +177,8 @@ impl Grid
             if let Some(new_interaction) = cell.check_hit(ray) {
                 match &interaction {
                     Some(prev_interaction) => {
-                        if new_interaction.get_intersect_scalar() < prev_interaction.get_intersect_scalar()
+                        if new_interaction.get_intersect_scalar()
+                            < prev_interaction.get_intersect_scalar()
                             && math::far_from_zero_pos(new_interaction.get_intersect_scalar())
                         {
                             interaction = Some(new_interaction);
@@ -570,7 +571,8 @@ impl GridCell
                 if let Some(interaction) = object.intersect(ray) {
                     match last_interaction {
                         Some(last_interaction) => {
-                            if interaction.get_intersect_scalar() < last_interaction.get_intersect_scalar()
+                            if interaction.get_intersect_scalar()
+                                < last_interaction.get_intersect_scalar()
                                 && math::far_from_zero_pos(interaction.get_intersect_scalar())
                             {
                                 Some(interaction)

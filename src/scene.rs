@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use na::Vector3;
 use Grid;
+use Interaction;
 use Light;
 use Object;
 use Ray;
-use Interaction;
 
 pub struct Scene
 {

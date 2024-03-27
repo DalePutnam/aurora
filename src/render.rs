@@ -18,11 +18,11 @@ use na::Vector4;
 use rand::rngs::StdRng;
 use rand::Rng;
 use rand::SeedableRng;
+use Interaction;
 use Light;
 use Object;
 use Ray;
 use Scene;
-use Interaction;
 
 pub struct Parameters
 {
@@ -203,10 +203,7 @@ fn trace_worker(
     }
 }
 
-fn direct_lighting(
-    interaction: &Interaction,
-    scene: &Scene,
-) -> Vector3<f32>
+fn direct_lighting(interaction: &Interaction, scene: &Scene) -> Vector3<f32>
 {
     let mut l_out = Vector3::zeros();
 
@@ -247,7 +244,6 @@ fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vec
         }
 
         if let Some(interaction) = scene.check_hit(&ray) {
-
             // At some point when emissive objects are supported we will have to conditionally account for it here
             // Consult pbrt 3rd edition for details
 
