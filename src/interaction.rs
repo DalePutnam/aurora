@@ -2,7 +2,6 @@ use na::Matrix4;
 use na::Unit;
 use na::Vector3;
 use na::Vector4;
-use na::U3;
 use shading::Material;
 use util::math;
 
@@ -36,12 +35,12 @@ impl<'a> Interaction<'a>
         let rotation_axis = if normal == vertical || normal == nvertical {
             Vector4::new(1.0, 0.0, 0.0, 0.0)
         } else {
-            math::cross_4d(normal, vertical)
+            math::cross_4d(&normal, &vertical)
         };
 
         let rotation_angle = normal.dot(&vertical).acos();
         let transform = Matrix4::from_axis_angle(
-            &Unit::new_normalize(rotation_axis.fixed_rows::<U3>(0).into()),
+            &Unit::new_normalize(rotation_axis.fixed_rows::<3>(0).into()),
             rotation_angle,
         );
 

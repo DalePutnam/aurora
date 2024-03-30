@@ -14,9 +14,9 @@ pub struct Lambertian
 
 impl Lambertian
 {
-    pub fn new(colour: Vector3<f32>) -> Self
+    pub fn new(colour: &Vector3<f32>) -> Self
     {
-        Lambertian { colour: colour }
+        Lambertian { colour: *colour }
     }
 }
 
@@ -40,25 +40,5 @@ impl Material for Lambertian
     fn pdf(&self, w_in: &Vector4<f32>) -> f32
     {
         sampling::cosine_hemisphere_pdf(w_in.z.abs())
-    }
-
-    fn ambient_component(&self) -> Vector3<f32>
-    {
-        self.colour
-    }
-
-    fn diffuse_component(&self, light: Vector4<f32>, normal: Vector4<f32>) -> Vector3<f32>
-    {
-        self.colour * light.dot(&normal).max(0.0)
-    }
-
-    fn specular_component(
-        &self,
-        _view: Vector4<f32>,
-        _light: Vector4<f32>,
-        _normal: Vector4<f32>,
-    ) -> Vector3<f32>
-    {
-        Vector3::zeros()
     }
 }

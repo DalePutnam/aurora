@@ -15,11 +15,11 @@ pub struct BoundingBox
 
 impl BoundingBox
 {
-    pub fn new(lower_point: Vector4<f32>, upper_point: Vector4<f32>) -> Self
+    pub fn new(lower_point: &Vector4<f32>, upper_point: &Vector4<f32>) -> Self
     {
         BoundingBox {
-            lower_point: lower_point,
-            upper_point: upper_point,
+            lower_point: *lower_point,
+            upper_point: *upper_point,
         }
     }
 
@@ -28,7 +28,7 @@ impl BoundingBox
         (self.lower_point, self.upper_point)
     }
 
-    pub fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> bool
+    pub fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> bool
     {
         let direction = transform * ray.direction();
         let origin = transform * ray.origin();

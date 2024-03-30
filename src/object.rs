@@ -28,14 +28,14 @@ impl Object
 {
     pub fn new(
         name: String,
-        transform: Matrix4<f32>,
+        transform: &Matrix4<f32>,
         primitive: Arc<dyn Primitive>,
         material: Arc<dyn Material>,
     ) -> Self
     {
         // Get min/max coordinates in model space
         let (min, max) = primitive.get_extents();
-        let bounding_box = BoundingBox::new(min, max);
+        let bounding_box = BoundingBox::new(&min, &max);
 
         Object {
             name: name,
@@ -57,9 +57,9 @@ impl Object
         &self.bounding_box
     }
 
-    pub fn get_transform(&self) -> Matrix4<f32>
+    pub fn get_transform(&self) -> &Matrix4<f32>
     {
-        self.transform
+        &self.transform
     }
 
     pub fn intersect(&self, ray: &Ray) -> Option<Interaction>
@@ -71,12 +71,12 @@ impl Object
         let local_origin = self.transform * ray.origin();
         let local_direction = self.transform * ray.direction();
 
-        if self.bounding_box.hit(ray, self.transform) {
+        if self.bounding_box.hit(ray, &self.transform) {
             if let Some((intersect, local_normal, tex_coords)) =
                 self.primitive.intersect(&local_origin, &local_direction)
             {
                 let intersection = ray.origin() + (intersect * ray.direction());
-                let normal = math::transform_normals(local_normal, self.transform);
+                let normal = math::transform_normals(&local_normal, &self.transform);
                 let w_out = -ray.direction();
                 Some(Interaction::new(
                     self.material.borrow(),

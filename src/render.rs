@@ -85,9 +85,9 @@ pub fn render(parameters: Parameters)
         image_width,
         image_height,
         vertical_fov,
-        eye_vector,
-        view_vector,
-        up_vector,
+        &eye_vector,
+        &view_vector,
+        &up_vector,
     );
     let eye_4d = Vector4::new(eye_vector.x, eye_vector.y, eye_vector.z, 1.0);
 
@@ -104,7 +104,7 @@ pub fn render(parameters: Parameters)
     if let Some(p) = &parameters.single_pixel {
         let mut rng = StdRng::seed_from_u64(0);
 
-        let rgb = trace_pixel(p.0, p.1, stw, eye_4d, scene.as_ref(), &mut rng);
+        let rgb = trace_pixel(p.0, p.1, &stw, &eye_4d, scene.as_ref(), &mut rng);
         image.put_pixel(p.0, p.1, *Rgb::from_slice(&rgb));
     } else {
         let rx = {
@@ -190,7 +190,7 @@ fn trace_worker(
 
         for x in frame_section.x..frame_section.x + frame_section.width {
             for y in frame_section.y..frame_section.y + frame_section.height {
-                let rgb = trace_pixel(x, y, stw, eye, &scene, &mut rng);
+                let rgb = trace_pixel(x, y, &stw, &eye, &scene, &mut rng);
 
                 tx.send(PixelColour {
                     x: x,
@@ -284,8 +284,8 @@ fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vec
 fn trace_pixel(
     x: u32,
     y: u32,
-    stw: Matrix4<f32>,
-    eye: Vector4<f32>,
+    stw: &Matrix4<f32>,
+    eye: &Vector4<f32>,
     scene: &Scene,
     rng: &mut StdRng,
 ) -> [u8; 3]
@@ -316,9 +316,9 @@ fn create_screen_to_world_matrix(
     width: u32,
     height: u32,
     fov_y: f32,
-    eye: Vector3<f32>,
-    view: Vector3<f32>,
-    up: Vector3<f32>,
+    eye: &Vector3<f32>,
+    view: &Vector3<f32>,
+    up: &Vector3<f32>,
 ) -> Matrix4<f32>
 {
     let nx = width as f32;

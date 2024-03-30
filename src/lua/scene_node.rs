@@ -127,7 +127,7 @@ impl SceneNode
                 let object_number = node.objects_built.replace(node.objects_built.get() + 1);
                 let object_name = format!("<{}>:{}", node.name, object_number);
 
-                return Some(Object::new(object_name, transform, primitive, material));
+                return Some(Object::new(object_name, &transform, primitive, material));
             }
         }
 

@@ -1,3 +1,4 @@
+use std::convert::From;
 use std::ops::Deref;
 
 use na;

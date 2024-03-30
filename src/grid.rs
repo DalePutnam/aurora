@@ -104,7 +104,7 @@ impl Grid
                 let tx = mpsc::Sender::clone(&tx);
 
                 thread::spawn(move || {
-                    Grid::fill_worker(grid_min, grid_cell_size, cell_list, &objects, tx);
+                    Grid::fill_worker(&grid_min, grid_cell_size, cell_list, &objects, tx);
                 });
             }
 
@@ -161,14 +161,26 @@ impl Grid
             * self.cell_size)
             + self.position.insert_row(3, 1.0);
 
-        let (mut t_max_x, t_delta_x) =
-            self.get_max_and_delta(step_x, ray, cell_position, Vector4::new(1.0, 0.0, 0.0, 0.0));
+        let (mut t_max_x, t_delta_x) = self.get_max_and_delta(
+            step_x,
+            ray,
+            &cell_position,
+            &Vector4::new(1.0, 0.0, 0.0, 0.0),
+        );
 
-        let (mut t_max_y, t_delta_y) =
-            self.get_max_and_delta(step_y, ray, cell_position, Vector4::new(0.0, 1.0, 0.0, 0.0));
+        let (mut t_max_y, t_delta_y) = self.get_max_and_delta(
+            step_y,
+            ray,
+            &cell_position,
+            &Vector4::new(0.0, 1.0, 0.0, 0.0),
+        );
 
-        let (mut t_max_z, t_delta_z) =
-            self.get_max_and_delta(step_z, ray, cell_position, Vector4::new(0.0, 0.0, 1.0, 0.0));
+        let (mut t_max_z, t_delta_z) = self.get_max_and_delta(
+            step_z,
+            ray,
+            &cell_position,
+            &Vector4::new(0.0, 0.0, 1.0, 0.0),
+        );
 
         let mut cell = self.cell_at(grid_x as usize, grid_y as usize, grid_z as usize);
         let mut interaction: Option<Interaction> = None;
@@ -240,7 +252,7 @@ impl Grid
     }
 
     fn fill_worker(
-        grid_min: Vector3<f32>,
+        grid_min: &Vector3<f32>,
         cell_size: f32,
         mut cell_list: Vec<(usize, usize, usize)>,
         objects: &Vec<Arc<Object>>,
@@ -260,7 +272,7 @@ impl Grid
                     cell_size * z as f32,
                 );
 
-            tx.send(((x, y, z), GridCell::new(position, cell_size, objects)))
+            tx.send(((x, y, z), GridCell::new(&position, cell_size, objects)))
                 .unwrap();
         }
     }
@@ -420,8 +432,8 @@ impl Grid
         &self,
         step: i64,
         ray: &Ray,
-        cell_position: Vector4<f32>,
-        normal: Vector4<f32>,
+        cell_position: &Vector4<f32>,
+        normal: &Vector4<f32>,
     ) -> (f32, f32)
     {
         let (first_point_offset, second_point_offset) = if step > 0 {
@@ -531,7 +543,7 @@ struct GridCell
 
 impl GridCell
 {
-    pub fn new(position: Vector3<f32>, size: f32, objects: &Vec<Arc<Object>>) -> Self
+    pub fn new(position: &Vector3<f32>, size: f32, objects: &Vec<Arc<Object>>) -> Self
     {
         let mut cell = GridCell {
             objects: Vec::new(),
@@ -554,7 +566,7 @@ impl GridCell
                 // grid cell we now check if the object bounding box contains a
                 // corner of the grid cell. This will catch the one case the above
                 // check does not.
-                if GridCell::check_point_in_box(&bbox_planes, grid_point) {
+                if GridCell::check_point_in_box(&bbox_planes, &grid_point) {
                     cell.objects.push(Arc::clone(object));
                 }
             }
@@ -615,16 +627,16 @@ impl GridCell
             let current_point = input_list[i];
             let prev_point = input_list[(i + input_list.len() - 1) % input_list.len()];
 
-            let la = GridCell::distance_from_plane(current_point, plane);
-            let lb = GridCell::distance_from_plane(prev_point, plane);
+            let la = GridCell::distance_from_plane(&current_point, plane);
+            let lb = GridCell::distance_from_plane(&prev_point, plane);
 
             if la >= 0.0 {
                 if lb < 0.0 {
                     point_list.push(GridCell::intersection_from_distances(
                         la,
                         lb,
-                        current_point,
-                        prev_point,
+                        &current_point,
+                        &prev_point,
                     ));
                 }
 
@@ -633,8 +645,8 @@ impl GridCell
                 point_list.push(GridCell::intersection_from_distances(
                     la,
                     lb,
-                    current_point,
-                    prev_point,
+                    &current_point,
+                    &prev_point,
                 ));
             }
 
@@ -642,7 +654,7 @@ impl GridCell
         })
     }
 
-    fn distance_from_plane(point: Vector4<f32>, plane: &(Vector4<f32>, Vector4<f32>)) -> f32
+    fn distance_from_plane(point: &Vector4<f32>, plane: &(Vector4<f32>, Vector4<f32>)) -> f32
     {
         (point - plane.0).dot(&plane.1)
     }
@@ -650,8 +662,8 @@ impl GridCell
     fn intersection_from_distances(
         la: f32,
         lb: f32,
-        current_point: Vector4<f32>,
-        prev_point: Vector4<f32>,
+        current_point: &Vector4<f32>,
+        prev_point: &Vector4<f32>,
     ) -> Vector4<f32>
     {
         let t = la / (la - lb);
@@ -659,7 +671,8 @@ impl GridCell
         current_point + (t * (prev_point - current_point))
     }
 
-    fn check_point_in_box(planes: &[(Vector4<f32>, Vector4<f32>); 6], point: Vector4<f32>) -> bool
+    fn check_point_in_box(planes: &[(Vector4<f32>, Vector4<f32>); 6], point: &Vector4<f32>)
+        -> bool
     {
         planes
             .iter()
@@ -667,9 +680,9 @@ impl GridCell
     }
 
     fn get_grid_planes(
-        position: Vector3<f32>,
+        position: &Vector3<f32>,
         size: f32,
-        transform: Matrix4<f32>,
+        transform: &Matrix4<f32>,
     ) -> [(Vector4<f32>, Vector4<f32>); 6]
     {
         let lower = transform * position.insert_row(3, 1.0);
@@ -680,27 +693,27 @@ impl GridCell
         [
             (
                 lower,
-                math::transform_normals(Vector4::new(1.0, 0.0, 0.0, 0.0), inverse_transform),
+                math::transform_normals(&Vector4::new(1.0, 0.0, 0.0, 0.0), &inverse_transform),
             ),
             (
                 lower,
-                math::transform_normals(Vector4::new(0.0, 1.0, 0.0, 0.0), inverse_transform),
+                math::transform_normals(&Vector4::new(0.0, 1.0, 0.0, 0.0), &inverse_transform),
             ),
             (
                 lower,
-                math::transform_normals(Vector4::new(0.0, 0.0, 1.0, 0.0), inverse_transform),
+                math::transform_normals(&Vector4::new(0.0, 0.0, 1.0, 0.0), &inverse_transform),
             ),
             (
                 upper,
-                math::transform_normals(Vector4::new(-1.0, 0.0, 0.0, 0.0), inverse_transform),
+                math::transform_normals(&Vector4::new(-1.0, 0.0, 0.0, 0.0), &inverse_transform),
             ),
             (
                 upper,
-                math::transform_normals(Vector4::new(0.0, -1.0, 0.0, 0.0), inverse_transform),
+                math::transform_normals(&Vector4::new(0.0, -1.0, 0.0, 0.0), &inverse_transform),
             ),
             (
                 upper,
-                math::transform_normals(Vector4::new(0.0, 0.0, -1.0, 0.0), inverse_transform),
+                math::transform_normals(&Vector4::new(0.0, 0.0, -1.0, 0.0), &inverse_transform),
             ),
         ]
     }
@@ -804,7 +817,7 @@ mod tests
         ];
 
         assert!(GridCell::check_polygons_in_cell(&planes, &polygons));
-        assert!(GridCell::check_point_in_box(&planes, points[0]));
+        assert!(GridCell::check_point_in_box(&planes, &points[0]));
     }
 
     #[test]

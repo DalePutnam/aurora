@@ -109,7 +109,7 @@ impl Primitive for Mesh
             let edge1 = v2 - v1;
             let edge2 = v3 - v1;
 
-            let h = math::cross_4d(*ray_direction, edge2);
+            let h = math::cross_4d(ray_direction, &edge2);
             let a = edge1.dot(&h);
 
             if math::near_zero(a) {
@@ -124,7 +124,7 @@ impl Primitive for Mesh
                 continue;
             }
 
-            let q = math::cross_4d(s, edge1);
+            let q = math::cross_4d(&s, &edge1);
             let v = f * ray_direction.dot(&q);
 
             if v < 0.0 || u + v > 1.0 {
@@ -147,7 +147,7 @@ impl Primitive for Mesh
 
                     normal = ((n1 * (1.0 - u - v)) + (n2 * u) + (n3 * v)).normalize();
                 } else {
-                    normal = math::cross_4d(v2 - v1, v3 - v1).normalize();
+                    normal = math::cross_4d(&(v2 - v1), &(v3 - v1)).normalize();
                 }
             }
         }

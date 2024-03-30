@@ -19,7 +19,7 @@ impl Lambertian
         -> rlua::Result<lua::Material>
     {
         let colour = lua::Vector3::from_lua(lua_value, lua)?;
-        Ok(lua::Material::new(Lambertian::new(na::Vector3::from(
+        Ok(lua::Material::new(Lambertian::new(&na::Vector3::from(
             colour,
         ))))
     }
@@ -124,9 +124,9 @@ impl Light
         let falloff = lua::Vector3::from_lua(lua_falloff, lua)?;
 
         Ok(Light::new(
-            na::Vector3::from(position),
-            na::Vector3::from(colour),
-            na::Vector3::from(falloff),
+            &na::Vector3::from(position),
+            &na::Vector3::from(colour),
+            &na::Vector3::from(falloff),
         ))
     }
 
@@ -142,8 +142,8 @@ impl Light
         let power = f32::from_lua(lua_power, lua)?;
 
         Ok(Light::new2(
-            na::Vector3::from(position),
-            na::Vector3::from(colour),
+            &na::Vector3::from(position),
+            &na::Vector3::from(colour),
             power,
         ))
     }
