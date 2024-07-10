@@ -19,6 +19,7 @@ pub mod cli;
 pub mod grid;
 pub mod interaction;
 pub mod light;
+pub mod linalg;
 pub mod lua;
 pub mod object;
 pub mod primitives;
