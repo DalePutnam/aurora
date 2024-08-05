@@ -1,21 +1,20 @@
-use std::f32;
 use std::fmt;
 
-use na::Matrix4;
-use na::Vector4;
+use linalg::Point;
+use linalg::Transform;
 use util::math;
 use Ray;
 
 #[derive(fmt::Debug)]
 pub struct BoundingBox
 {
-    lower_point: Vector4<f32>,
-    upper_point: Vector4<f32>,
+    lower_point: Point,
+    upper_point: Point,
 }
 
 impl BoundingBox
 {
-    pub fn new(lower_point: &Vector4<f32>, upper_point: &Vector4<f32>) -> Self
+    pub fn new(lower_point: &Point, upper_point: &Point) -> Self
     {
         BoundingBox {
             lower_point: *lower_point,
@@ -23,31 +22,33 @@ impl BoundingBox
         }
     }
 
-    pub fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>)
+    pub fn get_extents(&self) -> (Point, Point)
     {
         (self.lower_point, self.upper_point)
     }
 
-    pub fn hit(&self, ray: &Ray, transform: &Matrix4<f32>) -> bool
+    pub fn hit(&self, ray: &Ray, transform: &Transform) -> bool
     {
         let direction = transform * ray.direction();
         let origin = transform * ray.origin();
 
-        let inv_direction = Vector4::repeat(1.0).component_div(&direction);
+        let inv_direction_x = 1.0 / direction.x;
+        let inv_direction_y = 1.0 / direction.y;
+        let inv_direction_z = 1.0 / direction.z;
 
-        let min = (self.lower_point.x - origin.x) * inv_direction.x;
-        let max = (self.upper_point.x - origin.x) * inv_direction.x;
+        let min = (self.lower_point.x - origin.x) * inv_direction_x;
+        let max = (self.upper_point.x - origin.x) * inv_direction_x;
 
-        let (mut t_min, mut t_max) = if inv_direction.x >= 0.0 {
+        let (mut t_min, mut t_max) = if inv_direction_x >= 0.0 {
             (min, max)
         } else {
             (max, min)
         };
 
-        let min = (self.lower_point.y - origin.y) * inv_direction.y;
-        let max = (self.upper_point.y - origin.y) * inv_direction.y;
+        let min = (self.lower_point.y - origin.y) * inv_direction_y;
+        let max = (self.upper_point.y - origin.y) * inv_direction_y;
 
-        let (ty_min, ty_max) = if inv_direction.y >= 0.0 {
+        let (ty_min, ty_max) = if inv_direction_y >= 0.0 {
             (min, max)
         } else {
             (max, min)
@@ -65,10 +66,10 @@ impl BoundingBox
             t_max = ty_max;
         }
 
-        let min = (self.lower_point.z - origin.z) * inv_direction.z;
-        let max = (self.upper_point.z - origin.z) * inv_direction.z;
+        let min = (self.lower_point.z - origin.z) * inv_direction_z;
+        let max = (self.upper_point.z - origin.z) * inv_direction_z;
 
-        let (tz_min, tz_max) = if inv_direction.z >= 0.0 {
+        let (tz_min, tz_max) = if inv_direction_z >= 0.0 {
             (min, max)
         } else {
             (max, min)

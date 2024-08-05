@@ -5,7 +5,9 @@ use std::f32;
 use std::fmt;
 use std::path::Path;
 
-use na::Vector4;
+use linalg::Normal;
+use linalg::Point;
+use linalg::Vector;
 use primitives::Primitive;
 use util::math;
 
@@ -48,9 +50,9 @@ impl error::Error for Error {}
 #[derive(fmt::Debug)]
 pub struct Mesh
 {
-    vertices: Vec<Vector4<f32>>,
-    normals: Vec<Vector4<f32>>,
-    texture_coordinates: Vec<Vector4<f32>>,
+    vertices: Vec<Point>,
+    normals: Vec<Vector>,
+    texture_coordinates: Vec<Vector>,
     faces: Vec<Triangle>,
 }
 
@@ -92,12 +94,12 @@ impl Primitive for Mesh
 {
     fn intersect(
         &self,
-        ray_origin: &Vector4<f32>,
-        ray_direction: &Vector4<f32>,
-    ) -> Option<(f32, Vector4<f32>, (f32, f32))>
+        ray_origin: &Point,
+        ray_direction: &Vector,
+    ) -> Option<(f32, Normal, (f32, f32))>
     {
         let mut intersect = f32::INFINITY;
-        let mut normal = Vector4::new(0.0, 0.0, 0.0, 0.0);
+        let mut normal: Option<Normal> = None;
 
         for face in &self.faces {
             // Moller-Trombore intersection algorithm
@@ -109,7 +111,7 @@ impl Primitive for Mesh
             let edge1 = v2 - v1;
             let edge2 = v3 - v1;
 
-            let h = math::cross_4d(ray_direction, &edge2);
+            let h = ray_direction.cross(&edge2);
             let a = edge1.dot(&h);
 
             if math::near_zero(a) {
@@ -124,7 +126,7 @@ impl Primitive for Mesh
                 continue;
             }
 
-            let q = math::cross_4d(&s, &edge1);
+            let q = s.cross(&edge1);
             let v = f * ray_direction.dot(&q);
 
             if v < 0.0 || u + v > 1.0 {
@@ -145,28 +147,31 @@ impl Primitive for Mesh
                     let n2 = &self.normals[normals.1];
                     let n3 = &self.normals[normals.2];
 
-                    normal = ((n1 * (1.0 - u - v)) + (n2 * u) + (n3 * v)).normalize();
+                    normal = Some(Normal::from_vector(
+                        &((n1 * (1.0 - u - v)) + (n2 * u) + (n3 * v)),
+                    ));
                 } else {
-                    normal = math::cross_4d(&(v2 - v1), &(v3 - v1)).normalize();
+                    normal = Some(Normal::from_vector(&(v2 - v1).cross(&(v3 - v1))));
                 }
             }
         }
 
-        if intersect < f32::INFINITY {
-            if ray_direction.dot(&normal) > 0.0 {
-                normal = -normal;
-            }
+        if let Some(mut normal) = normal {
+            if intersect < f32::INFINITY {
+                if ray_direction.dot(&normal) > 0.0 {
+                    normal = -normal;
+                }
 
-            Some((intersect, normal, (0.0, 0.0)))
-        } else {
-            None
+                return Some((intersect, normal, (0.0, 0.0)));
+            }
         }
+        None
     }
 
-    fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>)
+    fn get_extents(&self) -> (Point, Point)
     {
-        let mut max = Vector4::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY, 1.0);
-        let mut min = Vector4::new(f32::INFINITY, f32::INFINITY, f32::INFINITY, 1.0);
+        let mut max = Point::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY);
+        let mut min = Point::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
 
         for vertex in &self.vertices {
             min.x = f32::min(min.x, vertex.x);

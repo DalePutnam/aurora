@@ -3,6 +3,7 @@ use std::cell::Cell;
 use std::fmt;
 use std::sync::Arc;
 
+use linalg::Transform;
 use na::Matrix4;
 use primitives::BoundingBox;
 use primitives::Primitive;
@@ -11,13 +12,11 @@ use thread_local::ThreadLocal;
 use Interaction;
 use Ray;
 
-use crate::util::math;
-
 #[derive(fmt::Debug)]
 pub struct Object
 {
     name: String,
-    transform: Matrix4<f32>,
+    transform: Transform,
     bounding_box: Box<BoundingBox>,
     primitive: Arc<dyn Primitive>,
     material: Arc<dyn Material>,
@@ -40,7 +39,7 @@ impl Object
         Object {
             name: name,
             bounding_box: Box::new(bounding_box),
-            transform: transform.try_inverse().unwrap(), // We need the world to model matrix here
+            transform: Transform::from(transform.try_inverse().unwrap()), // We need the world to model matrix here
             primitive: primitive,
             material: material,
             last_seen_ray: ThreadLocal::new(),
@@ -57,7 +56,7 @@ impl Object
         &self.bounding_box
     }
 
-    pub fn get_transform(&self) -> &Matrix4<f32>
+    pub fn get_transform(&self) -> &Transform
     {
         &self.transform
     }
@@ -75,8 +74,8 @@ impl Object
             if let Some((intersect, local_normal, tex_coords)) =
                 self.primitive.intersect(&local_origin, &local_direction)
             {
-                let intersection = ray.origin() + (intersect * ray.direction());
-                let normal = math::transform_normals(&local_normal, &self.transform);
+                let intersection = ray.origin() + (ray.direction() * intersect);
+                let normal = self.transform.inverse() * local_normal; //math::transform_normals(&local_normal, &self.transform);
                 let w_out = -ray.direction();
                 Some(Interaction::new(
                     self.material.borrow(),

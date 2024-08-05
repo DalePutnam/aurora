@@ -1,11 +1,14 @@
 use std::cmp::PartialEq;
 use std::fmt::Debug;
+use std::ops::Add;
+use std::ops::AddAssign;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::ops::Index;
 use std::ops::IndexMut;
 use std::ops::Mul;
 use std::ops::MulAssign;
+use std::ops::Neg;
 
 use na;
 
@@ -32,6 +35,14 @@ impl Vector
     {
         Vector {
             vec: na::Vector4::new(0.0, 0.0, 0.0, 0.0),
+        }
+    }
+
+    #[inline]
+    pub fn repeat(n: f32) -> Self
+    {
+        Vector {
+            vec: na::Vector4::new(n, n, n, 0.0),
         }
     }
 
@@ -93,6 +104,14 @@ impl DerefMut for Vector
     }
 }
 
+impl From<&na::Vector3<f32>> for Vector
+{
+    fn from(value: &na::Vector3<f32>) -> Self
+    {
+        Vector::new(value.x, value.y, value.z)
+    }
+}
+
 impl Index<usize> for Vector
 {
     type Output = f32;
@@ -118,6 +137,26 @@ impl IndexMut<usize> for Vector
         }
 
         &mut self.vec[i]
+    }
+}
+
+impl Neg for Vector
+{
+    type Output = Vector;
+
+    fn neg(self) -> Self::Output
+    {
+        Vector { vec: -self.vec }
+    }
+}
+
+impl Neg for &Vector
+{
+    type Output = Vector;
+
+    fn neg(self) -> Self::Output
+    {
+        Vector { vec: -self.vec }
     }
 }
 
@@ -200,6 +239,88 @@ impl MulAssign<&f32> for &mut Vector
     fn mul_assign(&mut self, rhs: &f32)
     {
         MulAssign::mul_assign(*self, *rhs)
+    }
+}
+
+impl Add<Vector> for Vector
+{
+    type Output = Vector;
+
+    #[inline]
+    fn add(self, rhs: Vector) -> Self::Output
+    {
+        Vector {
+            vec: self.vec + rhs.vec,
+        }
+    }
+}
+
+impl Add<Vector> for &Vector
+{
+    type Output = Vector;
+
+    #[inline]
+    fn add(self, rhs: Vector) -> Self::Output
+    {
+        Add::add(*self, rhs)
+    }
+}
+
+impl Add<&Vector> for Vector
+{
+    type Output = Vector;
+
+    #[inline]
+    fn add(self, rhs: &Vector) -> Self::Output
+    {
+        Add::add(self, *rhs)
+    }
+}
+
+impl Add<&Vector> for &Vector
+{
+    type Output = Vector;
+
+    #[inline]
+    fn add(self, rhs: &Vector) -> Self::Output
+    {
+        Add::add(*self, *rhs)
+    }
+}
+
+impl AddAssign<Vector> for Vector
+{
+    #[inline]
+    fn add_assign(&mut self, rhs: Vector)
+    {
+        self.vec += rhs.vec;
+    }
+}
+
+impl AddAssign<&Vector> for Vector
+{
+    #[inline]
+    fn add_assign(&mut self, rhs: &Vector)
+    {
+        AddAssign::add_assign(self, *rhs)
+    }
+}
+
+impl AddAssign<Vector> for &mut Vector
+{
+    #[inline]
+    fn add_assign(&mut self, rhs: Vector)
+    {
+        AddAssign::add_assign(*self, rhs)
+    }
+}
+
+impl AddAssign<&Vector> for &mut Vector
+{
+    #[inline]
+    fn add_assign(&mut self, rhs: &Vector)
+    {
+        AddAssign::add_assign(*self, *rhs)
     }
 }
 

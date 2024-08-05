@@ -35,6 +35,14 @@ impl Point
             vec: na::Vector4::new(0.0, 0.0, 0.0, 1.0),
         }
     }
+
+    #[inline]
+    pub fn repeat(n: f32) -> Self
+    {
+        Point {
+            vec: na::Vector4::new(n, n, n, 0.0),
+        }
+    }
 }
 
 impl Deref for Point
@@ -82,6 +90,14 @@ impl IndexMut<usize> for Point
         }
 
         &mut self.vec[i]
+    }
+}
+
+impl From<&na::Vector3<f32>> for Point
+{
+    fn from(value: &na::Vector3<f32>) -> Self
+    {
+        Point::new(value.x, value.y, value.z)
     }
 }
 

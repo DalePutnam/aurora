@@ -5,7 +5,9 @@ use std::io;
 use std::io::BufRead;
 use std::io::BufReader;
 
-use na::Vector4;
+use linalg::Point;
+use linalg::Vector;
+use na::Vector3;
 use primitives::mesh::Triangle;
 use primitives::Mesh;
 
@@ -121,15 +123,16 @@ fn parse_line(line: String, mesh: &mut Mesh) -> Result<(), String>
         match line_parts[0] {
             "v" => {
                 let vertex = parse_vertex_data(&line_parts)?;
-                mesh.vertices.push(vertex);
+                mesh.vertices.push(Point::from(&vertex));
             },
             "vn" => {
                 let normal = parse_vertex_data(&line_parts)?;
-                mesh.normals.push(normal);
+                mesh.normals.push(Vector::from(&normal));
             },
             "vt" => {
                 let texture_coordinate = parse_vertex_data(&line_parts)?;
-                mesh.texture_coordinates.push(texture_coordinate);
+                mesh.texture_coordinates
+                    .push(Vector::from(&texture_coordinate));
             },
             "f" => {
                 let face = parse_face_data(&line_parts)?;
@@ -145,7 +148,7 @@ fn parse_line(line: String, mesh: &mut Mesh) -> Result<(), String>
     Ok(())
 }
 
-fn parse_vertex_data(parts: &Vec<&str>) -> Result<Vector4<f32>, String>
+fn parse_vertex_data(parts: &Vec<&str>) -> Result<Vector3<f32>, String>
 {
     if parts.len() < 4 {
         return Err(String::from(
@@ -161,7 +164,7 @@ fn parse_vertex_data(parts: &Vec<&str>) -> Result<Vector4<f32>, String>
     let y = parse_vertex_component(parts[2])?;
     let z = parse_vertex_component(parts[3])?;
 
-    Ok(Vector4::new(x, y, z, 1.0))
+    Ok(Vector3::new(x, y, z))
 }
 
 fn parse_vertex_component(part: &str) -> Result<f32, String>

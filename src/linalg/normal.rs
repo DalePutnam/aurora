@@ -1,4 +1,5 @@
 use std::ops::Deref;
+use std::ops::Neg;
 
 use super::Vector;
 
@@ -16,6 +17,27 @@ impl Normal
             vec: vector.normalize(),
         }
     }
+
+    pub fn x_axis() -> Self
+    {
+        Normal {
+            vec: Vector::new(1.0, 0.0, 0.0),
+        }
+    }
+
+    pub fn y_axis() -> Self
+    {
+        Normal {
+            vec: Vector::new(0.0, 1.0, 0.0),
+        }
+    }
+
+    pub fn z_axis() -> Self
+    {
+        Normal {
+            vec: Vector::new(0.0, 0.0, 1.0),
+        }
+    }
 }
 
 impl Deref for Normal
@@ -26,6 +48,26 @@ impl Deref for Normal
     fn deref(&self) -> &Self::Target
     {
         &self.vec
+    }
+}
+
+impl Neg for Normal
+{
+    type Output = Normal;
+
+    fn neg(self) -> Normal
+    {
+        Normal { vec: -self.vec }
+    }
+}
+
+impl Neg for &Normal
+{
+    type Output = Normal;
+
+    fn neg(self) -> Normal
+    {
+        Normal { vec: -self.vec }
     }
 }
 

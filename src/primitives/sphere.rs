@@ -1,15 +1,17 @@
 use std::f32;
 use std::fmt;
 
+use linalg::Normal;
+use linalg::Point;
+use linalg::Vector;
 use na::Vector3;
-use na::Vector4;
 use primitives::Primitive;
 use util::math;
 
 #[derive(fmt::Debug)]
 pub struct Sphere
 {
-    position: Vector4<f32>,
+    position: Point,
     radius: f32,
 }
 
@@ -18,7 +20,7 @@ impl Sphere
     pub fn unit_sphere() -> Sphere
     {
         Sphere {
-            position: Vector4::new(0.0, 0.0, 0.0, 1.0),
+            position: Point::origin(),
             radius: 1.0,
         }
     }
@@ -26,7 +28,7 @@ impl Sphere
     pub fn new(position: Vector3<f32>, radius: f32) -> Self
     {
         Sphere {
-            position: Vector4::new(position.x, position.y, position.z, 1.0),
+            position: Point::new(position.x, position.y, position.z),
             radius: radius,
         }
     }
@@ -36,9 +38,9 @@ impl Primitive for Sphere
 {
     fn intersect(
         &self,
-        ray_origin: &Vector4<f32>,
-        ray_direction: &Vector4<f32>,
-    ) -> Option<(f32, Vector4<f32>, (f32, f32))>
+        ray_origin: &Point,
+        ray_direction: &Vector,
+    ) -> Option<(f32, Normal, (f32, f32))>
     {
         let oc = ray_origin - self.position;
 
@@ -66,7 +68,9 @@ impl Primitive for Sphere
                         }
                     };
 
-                    let mut normal = (ray_origin + (intersect * ray_direction)) - self.position;
+                    let mut normal = Normal::from_vector(
+                        &((ray_origin + (ray_direction * intersect)) - self.position),
+                    );
 
                     // Invert normal if inside sphere
                     if normal.dot(&(-ray_direction)) < 0.0 {
@@ -79,11 +83,11 @@ impl Primitive for Sphere
         }
     }
 
-    fn get_extents(&self) -> (Vector4<f32>, Vector4<f32>)
+    fn get_extents(&self) -> (Point, Point)
     {
         (
-            self.position.add_scalar(-self.radius),
-            self.position.add_scalar(self.radius),
+            self.position + Vector::repeat(-self.radius),
+            self.position + Vector::repeat(self.radius),
         )
     }
 }

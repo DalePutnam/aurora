@@ -12,9 +12,10 @@ use image::ColorType;
 use image::ImageBuffer;
 use image::Pixel;
 use image::Rgb;
-use na::Matrix4;
+use linalg::Point;
+use linalg::Transform;
+use linalg::Vector;
 use na::Vector3;
-use na::Vector4;
 use rand::rngs::StdRng;
 use rand::Rng;
 use rand::SeedableRng;
@@ -81,15 +82,12 @@ pub fn render(parameters: Parameters)
 
     println!("{} worker threads", num_cpus::get());
 
-    let stw = create_screen_to_world_matrix(
-        image_width,
-        image_height,
-        vertical_fov,
-        &eye_vector,
-        &view_vector,
-        &up_vector,
-    );
-    let eye_4d = Vector4::new(eye_vector.x, eye_vector.y, eye_vector.z, 1.0);
+    let eye = Point::new(eye_vector.x, eye_vector.y, eye_vector.z);
+    let view = Point::new(view_vector.x, view_vector.y, view_vector.z);
+    let up = Vector::new(up_vector.x, up_vector.y, up_vector.z);
+
+    let stw =
+        create_screen_to_world_matrix(image_width, image_height, vertical_fov, &eye, &view, &up);
 
     let frame_sections = Arc::new(Mutex::new(divide_frame(image_width, image_height)));
 
@@ -104,7 +102,7 @@ pub fn render(parameters: Parameters)
     if let Some(p) = &parameters.single_pixel {
         let mut rng = StdRng::seed_from_u64(0);
 
-        let rgb = trace_pixel(p.0, p.1, &stw, &eye_4d, scene.as_ref(), &mut rng);
+        let rgb = trace_pixel(p.0, p.1, &stw, &eye, scene.as_ref(), &mut rng);
         image.put_pixel(p.0, p.1, *Rgb::from_slice(&rgb));
     } else {
         let rx = {
@@ -116,7 +114,7 @@ pub fn render(parameters: Parameters)
                 let scene = Arc::clone(&scene);
 
                 thread::spawn(move || {
-                    trace_worker(stw, eye_4d, scene.as_ref(), frame_sections, tx);
+                    trace_worker(stw, eye, scene.as_ref(), frame_sections, tx);
                 });
             }
 
@@ -169,8 +167,8 @@ pub fn render(parameters: Parameters)
 }
 
 fn trace_worker(
-    stw: Matrix4<f32>,
-    eye: Vector4<f32>,
+    stw: Transform,
+    eye: Point,
     scene: &Scene,
     frame_sections: Arc<Mutex<Vec<FrameSection>>>,
     tx: Sender<PixelColour>,
@@ -284,8 +282,8 @@ fn generate_path(initial_direction: Ray, scene: &Scene, rng: &mut StdRng) -> Vec
 fn trace_pixel(
     x: u32,
     y: u32,
-    stw: &Matrix4<f32>,
-    eye: &Vector4<f32>,
+    stw: &Transform,
+    eye: &Point,
     scene: &Scene,
     rng: &mut StdRng,
 ) -> [u8; 3]
@@ -297,7 +295,7 @@ fn trace_pixel(
         let offset_x = rng.gen::<f32>();
         let offset_y = rng.gen::<f32>();
 
-        let pworld = stw * Vector4::new((x as f32) + offset_x, (y as f32) + offset_y, 0.0, 1.0);
+        let pworld = stw * Point::new((x as f32) + offset_x, (y as f32) + offset_y, 0.0);
 
         let ray = Ray::new(&eye, &(pworld - eye));
         radiance += generate_path(ray, scene, rng);
@@ -316,10 +314,10 @@ fn create_screen_to_world_matrix(
     width: u32,
     height: u32,
     fov_y: f32,
-    eye: &Vector3<f32>,
-    view: &Vector3<f32>,
-    up: &Vector3<f32>,
-) -> Matrix4<f32>
+    eye: &Point,
+    view: &Point,
+    up: &Vector,
+) -> Transform
 {
     let nx = width as f32;
     let ny = height as f32;
@@ -332,12 +330,12 @@ fn create_screen_to_world_matrix(
     let u = up.cross(&w).normalize();
     let v = u.cross(&w);
 
-    let t1 = Matrix4::new_translation(&Vector3::new(-nx / 2.0, -ny / 2.0, d));
-    let s2 = Matrix4::new_nonuniform_scaling(&Vector3::new(-hi / ny, wi / nx, 1.0));
-    let r3 = Matrix4::new(
+    let t1 = Transform::new_translation(-nx / 2.0, -ny / 2.0, d);
+    let s2 = Transform::new_nonuniform_scaling(-hi / ny, wi / nx, 1.0);
+    let r3 = Transform::new(
         u.x, v.x, w.x, 0.0, u.y, v.y, w.y, 0.0, u.z, v.z, w.z, 0.0, 0.0, 0.0, 0.0, 1.0,
     );
-    let t4 = Matrix4::new(
+    let t4 = Transform::new(
         1.0, 0.0, 0.0, eye.x, 0.0, 1.0, 0.0, eye.y, 0.0, 0.0, 1.0, eye.z, 0.0, 0.0, 0.0, 1.0,
     );
 

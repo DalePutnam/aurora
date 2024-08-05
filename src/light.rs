@@ -1,12 +1,14 @@
 use std::f32;
 
+use linalg::Point;
+use linalg::Vector;
 use na::Vector3;
 use na::Vector4;
 
 #[derive(Clone)]
 pub struct Light
 {
-    position: Vector4<f32>,
+    position: Point,
     colour: Vector3<f32>,
     radiant_intensity: f32,
     falloff: Vector3<f32>,
@@ -17,7 +19,7 @@ impl Light
     pub fn new(position: &Vector3<f32>, colour: &Vector3<f32>, falloff: &Vector3<f32>) -> Self
     {
         Light {
-            position: Vector4::<f32>::new(position.x, position.y, position.z, 1.0),
+            position: Point::new(position.x, position.y, position.z),
             colour: *colour,
             radiant_intensity: 1.0 / (f32::consts::PI * 4.0),
             falloff: *falloff,
@@ -27,14 +29,14 @@ impl Light
     pub fn new2(position: &Vector3<f32>, colour: &Vector3<f32>, power: f32) -> Self
     {
         Light {
-            position: Vector4::<f32>::new(position.x, position.y, position.z, 1.0),
+            position: Point::new(position.x, position.y, position.z),
             colour: *colour,
             radiant_intensity: power / (f32::consts::PI * 4.0),
             falloff: Vector3::new(1.0, 0.0, 0.0),
         }
     }
 
-    pub fn sample(&self, point: &Vector4<f32>, _: (f32, f32)) -> (Vector3<f32>, Vector4<f32>, f32)
+    pub fn sample(&self, point: &Point, _: (f32, f32)) -> (Vector3<f32>, Vector, f32)
     {
         let w = self.position - point;
 
@@ -54,7 +56,7 @@ impl Light
         true
     }
 
-    pub fn get_position(&self) -> &Vector4<f32>
+    pub fn get_position(&self) -> &Point
     {
         &self.position
     }

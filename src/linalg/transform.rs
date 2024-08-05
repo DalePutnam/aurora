@@ -11,7 +11,7 @@ use super::Vector;
 
 const NUM_ELEMENTS: usize = 16;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Transform
 {
     pub(super) mat: na::Matrix4<f32>,
@@ -110,6 +110,17 @@ impl<'a> From<TransformRef<'a>> for Transform
         Transform {
             mat: *value.mat,
             inv: *value.inv,
+        }
+    }
+}
+
+impl From<na::Matrix4<f32>> for Transform
+{
+    fn from(value: na::Matrix4<f32>) -> Self
+    {
+        Transform {
+            mat: value,
+            inv: value.try_inverse().unwrap(),
         }
     }
 }
@@ -331,6 +342,7 @@ impl Mul<Normal> for Transform
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct TransformRef<'a>
 {
     pub(super) mat: &'a na::Matrix4<f32>,
@@ -542,7 +554,7 @@ mod tests
         assert_eq!(transform.mat[14], 0.0);
         assert_eq!(transform.mat[15], 1.0);
 
-        let t2: Transform = transform.inverse().into();
+        // let t2: Transform = transform.inverse().into();
     }
 
     #[test]
