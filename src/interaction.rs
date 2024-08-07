@@ -3,50 +3,47 @@ use linalg::Point;
 use linalg::Transform;
 use linalg::Vector;
 use na::Vector3;
+use primitives::Intersection;
 use shading::Material;
+use shading::UV;
+use Ray;
 
 pub struct Interaction<'a>
 {
     material: &'a dyn Material,
     transform: Transform,
-    intersect: f32,
-    intersection: Point,
+    intersect_scalar: f32,
+    intersect_point: Point,
     w_out: Vector,
-    _tex_coords: (f32, f32),
+    _uv: UV,
 }
 
 impl<'a> Interaction<'a>
 {
-    pub fn new(
-        material: &'a dyn Material,
-        intersect: f32,
-        intersection: &Point,
-        normal: &Normal,
-        w_out: &Vector,
-        tex_coords: (f32, f32),
-    ) -> Self
+    pub fn new(intersection: &Intersection, material: &'a dyn Material, ray: &Ray) -> Self
     {
-        let w_out = w_out.normalize();
-
         let vertical = Normal::z_axis();
         let nvertical = -vertical;
 
-        let rotation_axis = if *normal == vertical || *normal == nvertical {
+        let rotation_axis = if intersection.normal == vertical || intersection.normal == nvertical {
             Normal::x_axis()
         } else {
-            Normal::from_vector(&normal.cross(&vertical))
+            Normal::from_vector(&intersection.normal.cross(&vertical))
         };
 
-        let rotation_angle = normal.dot(&vertical).acos();
+        let rotation_angle = intersection.normal.dot(&vertical).acos();
         let transform = Transform::from_axis_angle(&rotation_axis, rotation_angle);
+
+        let intersect_point = ray.origin() + (ray.direction() * intersection.t);
+        let w_out = transform * -ray.direction().normalize();
 
         Interaction {
             material: material,
             transform: transform,
-            intersect: intersect,
-            intersection: *intersection,
-            w_out: transform * w_out,
-            _tex_coords: tex_coords,
+            intersect_scalar: intersection.t,
+            intersect_point: intersect_point,
+            w_out: w_out,
+            _uv: intersection.uv,
         }
     }
 
@@ -68,11 +65,11 @@ impl<'a> Interaction<'a>
 
     pub fn get_intersect_scalar(&self) -> f32
     {
-        self.intersect
+        self.intersect_scalar
     }
 
     pub fn get_intersection(&self) -> &Point
     {
-        &self.intersection
+        &self.intersect_point
     }
 }

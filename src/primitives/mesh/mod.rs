@@ -8,7 +8,9 @@ use std::path::Path;
 use linalg::Normal;
 use linalg::Point;
 use linalg::Vector;
+use primitives::Intersection;
 use primitives::Primitive;
+use shading::UV;
 use util::math;
 
 use self::file::obj;
@@ -92,11 +94,7 @@ impl Mesh
 
 impl Primitive for Mesh
 {
-    fn intersect(
-        &self,
-        ray_origin: &Point,
-        ray_direction: &Vector,
-    ) -> Option<(f32, Normal, (f32, f32))>
+    fn intersect(&self, ray_origin: &Point, ray_direction: &Vector) -> Option<Intersection>
     {
         let mut intersect = f32::INFINITY;
         let mut normal: Option<Normal> = None;
@@ -162,7 +160,11 @@ impl Primitive for Mesh
                     normal = -normal;
                 }
 
-                return Some((intersect, normal, (0.0, 0.0)));
+                return Some(Intersection {
+                    t: intersect,
+                    normal: normal,
+                    uv: UV(0.0, 0.0),
+                });
             }
         }
         None

@@ -6,10 +6,10 @@ use std::sync::Arc;
 use linalg::Transform;
 use na::Matrix4;
 use primitives::BoundingBox;
+use primitives::Intersection;
 use primitives::Primitive;
 use shading::Material;
 use thread_local::ThreadLocal;
-use Interaction;
 use Ray;
 
 #[derive(fmt::Debug)]
@@ -61,7 +61,7 @@ impl Object
         &self.transform
     }
 
-    pub fn intersect(&self, ray: &Ray) -> Option<Interaction>
+    pub fn intersect(&self, ray: &Ray) -> Option<(Intersection, &dyn Material)>
     {
         if self.ray_previously_visited(ray) {
             return None;
@@ -71,19 +71,14 @@ impl Object
         let local_direction = self.transform * ray.direction();
 
         if self.bounding_box.hit(ray, &self.transform) {
-            if let Some((intersect, local_normal, tex_coords)) =
-                self.primitive.intersect(&local_origin, &local_direction)
-            {
-                let intersection = ray.origin() + (ray.direction() * intersect);
-                let normal = self.transform.inverse() * local_normal; //math::transform_normals(&local_normal, &self.transform);
-                let w_out = -ray.direction();
-                Some(Interaction::new(
+            if let Some(intersection) = self.primitive.intersect(&local_origin, &local_direction) {
+                Some((
+                    Intersection {
+                        t: intersection.t,
+                        normal: self.transform.inverse() * intersection.normal,
+                        uv: intersection.uv,
+                    },
                     self.material.borrow(),
-                    intersect,
-                    &intersection,
-                    &normal,
-                    &w_out,
-                    tex_coords,
                 ))
             } else {
                 None

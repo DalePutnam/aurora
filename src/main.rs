@@ -11,7 +11,6 @@ pub use self::grid::Grid;
 pub use self::interaction::Interaction;
 pub use self::light::Light;
 pub use self::object::Object;
-pub use self::ray::Hit;
 pub use self::ray::Ray;
 pub use self::scene::Scene;
 

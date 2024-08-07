@@ -3,7 +3,6 @@ use std::sync::atomic::Ordering;
 
 use linalg::Point;
 use linalg::Vector;
-use na::Vector4;
 
 static NEXT_RAY_ID: AtomicU64 = AtomicU64::new(0);
 
@@ -39,11 +38,4 @@ impl Ray
     {
         &self.origin
     }
-}
-
-pub struct Hit
-{
-    pub intersect: f32,
-    pub normal: Vector4<f32>,
-    pub uv: (f32, f32),
 }

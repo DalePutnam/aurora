@@ -5,7 +5,9 @@ use linalg::Normal;
 use linalg::Point;
 use linalg::Vector;
 use na::Vector3;
+use primitives::Intersection;
 use primitives::Primitive;
+use shading::UV;
 use util::math;
 
 #[derive(fmt::Debug)]
@@ -37,11 +39,7 @@ impl Cube
 impl Primitive for Cube
 {
     //fn hit(&self, ray: &Ray, transform: Matrix4<f32>) -> Option<Hit>
-    fn intersect(
-        &self,
-        ray_origin: &Point,
-        ray_direction: &Vector,
-    ) -> Option<(f32, Normal, (f32, f32))>
+    fn intersect(&self, ray_origin: &Point, ray_direction: &Vector) -> Option<Intersection>
     {
         enum Faces
         {
@@ -137,7 +135,11 @@ impl Primitive for Cube
         //     normal: world_normal,
         //     uv: (0.0, 0.0),
         // })
-        Some((intersect, normal, (0.0, 0.0)))
+        Some(Intersection {
+            t: intersect,
+            normal: normal,
+            uv: UV(0.0, 0.0),
+        })
     }
 
     fn get_extents(&self) -> (Point, Point)

@@ -3,6 +3,9 @@ use std::fmt;
 use linalg::Vector;
 use na::Vector3;
 
+#[derive(Clone, Copy)]
+pub struct UV(pub f32, pub f32);
+
 pub trait Material: Send + Sync + fmt::Debug
 {
     // Path Tracing Interface

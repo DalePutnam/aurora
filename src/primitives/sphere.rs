@@ -5,7 +5,9 @@ use linalg::Normal;
 use linalg::Point;
 use linalg::Vector;
 use na::Vector3;
+use primitives::Intersection;
 use primitives::Primitive;
+use shading::UV;
 use util::math;
 
 #[derive(fmt::Debug)]
@@ -36,11 +38,7 @@ impl Sphere
 
 impl Primitive for Sphere
 {
-    fn intersect(
-        &self,
-        ray_origin: &Point,
-        ray_direction: &Vector,
-    ) -> Option<(f32, Normal, (f32, f32))>
+    fn intersect(&self, ray_origin: &Point, ray_direction: &Vector) -> Option<Intersection>
     {
         let oc = ray_origin - self.position;
 
@@ -77,7 +75,11 @@ impl Primitive for Sphere
                         normal = -normal;
                     }
 
-                    Some((intersect, normal, (0.0, 0.0)))
+                    Some(Intersection {
+                        t: intersect,
+                        normal: normal,
+                        uv: UV(0.0, 0.0),
+                    })
                 }
             },
         }

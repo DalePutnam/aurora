@@ -10,8 +10,10 @@ use linalg::Transform;
 use linalg::Vector;
 use na::Vector3;
 use num_cpus;
+use primitives::Intersection;
 use rand;
 use rand::seq::SliceRandom;
+use shading::Material;
 use util::math;
 use Interaction;
 use Object;
@@ -172,29 +174,28 @@ impl Grid
             self.get_max_and_delta(step_z, ray, &cell_position, &Normal::z_axis());
 
         let mut cell = self.cell_at(grid_x as usize, grid_y as usize, grid_z as usize);
-        let mut interaction: Option<Interaction> = None;
+        let mut interaction: Option<(Intersection, &dyn Material)> = None;
 
         loop {
-            if let Some(new_interaction) = cell.check_hit(ray) {
+            if let Some((intersection, material)) = cell.check_hit(ray) {
                 match &interaction {
-                    Some(prev_interaction) => {
-                        if new_interaction.get_intersect_scalar()
-                            < prev_interaction.get_intersect_scalar()
-                            && math::far_from_zero_pos(new_interaction.get_intersect_scalar())
+                    Some((prev_intersection, _)) => {
+                        if intersection.t < prev_intersection.t
+                            && math::far_from_zero_pos(intersection.t)
                         {
-                            interaction = Some(new_interaction);
+                            interaction = Some((intersection, material));
                         }
                     },
                     None => {
-                        interaction = Some(new_interaction);
+                        interaction = Some((intersection, material));
                     },
                 }
             }
 
-            if let Some(interaction) = &interaction {
-                if interaction.get_intersect_scalar() <= t_max_x
-                    && interaction.get_intersect_scalar() <= t_max_y
-                    && interaction.get_intersect_scalar() <= t_max_z
+            if let Some((intersection, _)) = &interaction {
+                if intersection.t <= t_max_x
+                    && intersection.t <= t_max_y
+                    && intersection.t <= t_max_z
                 {
                     break;
                 }
@@ -237,7 +238,11 @@ impl Grid
             cell = self.cell_at(grid_x as usize, grid_y as usize, grid_z as usize);
         }
 
-        interaction
+        if let Some((intersection, material)) = interaction {
+            Some(Interaction::new(&intersection, material, &ray))
+        } else {
+            None
+        }
     }
 
     fn fill_worker(
@@ -565,29 +570,29 @@ impl GridCell
         cell
     }
 
-    pub fn check_hit(&self, ray: &Ray) -> Option<Interaction>
+    pub fn check_hit(&self, ray: &Ray) -> Option<(Intersection, &dyn Material)>
     {
-        self.objects
-            .iter()
-            .fold(None, |last_interaction, object| -> Option<Interaction> {
-                if let Some(interaction) = object.intersect(ray) {
+        self.objects.iter().fold(
+            None,
+            |last_interaction, object| -> Option<(Intersection, &dyn Material)> {
+                if let Some((intersection, material)) = object.intersect(ray) {
                     match last_interaction {
-                        Some(last_interaction) => {
-                            if interaction.get_intersect_scalar()
-                                < last_interaction.get_intersect_scalar()
-                                && math::far_from_zero_pos(interaction.get_intersect_scalar())
+                        Some((last_intersection, last_material)) => {
+                            if intersection.t < last_intersection.t
+                                && math::far_from_zero_pos(intersection.t)
                             {
-                                Some(interaction)
+                                Some((intersection, material))
                             } else {
-                                Some(last_interaction)
+                                Some((last_intersection, last_material))
                             }
                         },
-                        None => Some(interaction),
+                        None => Some((intersection, material)),
                     }
                 } else {
                     last_interaction
                 }
-            })
+            },
+        )
     }
 
     fn check_polygons_in_cell(planes: &[(Point, Normal); 6], polygons: &[[Point; 4]; 6]) -> bool
